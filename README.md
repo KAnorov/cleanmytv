@@ -5,7 +5,8 @@ A Mac and Windows app for [cleanyourtv](https://github.com/Gathin23/cleanyourtv)
 customise it, without Python, Java, Android Studio or `adb` on your computer.
 
 New to this? The **[user guide](docs/USER-GUIDE.md)** walks every step at TV-owner pace, including
-rollback and troubleshooting. This README is the technical overview.
+rollback and troubleshooting, and the **[known-devices table](docs/KNOWN-DEVICES.md)** shows what the
+bundled lists cover per model. This README is the technical overview.
 
 This is an independent project, not part of cleanyourtv. The debloat lists, themes and launcher come
 from upstream unchanged; this app is the desktop front end for them. Tested on a Xiaomi Mi Box S from
