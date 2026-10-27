@@ -27,9 +27,19 @@ Get the latest version from [Releases](https://github.com/wingedpanther/cleanmyt
 The installers are not signed with a paid developer certificate, so your computer warns you the first
 time:
 
-- **Mac:** open the dmg and drag CleanMyTV to Applications. The first time, right-click it and choose
-  **Open**, then **Open** again. macOS asks whether CleanMyTV may find devices on your local network:
-  choose **Allow**, or it cannot reach the TV.
+- **Mac:** open the dmg and drag CleanMyTV to Applications, then open it. When macOS says it can't
+  verify the developer, choose **Done**, go to System Settings → Privacy & Security and press
+  **Open Anyway** next to CleanMyTV (on macOS 14 and earlier, right-click the app and choose **Open**
+  instead). macOS asks whether CleanMyTV may find devices on your local network: choose **Allow**, or
+  it cannot reach the TV.
+
+  If macOS says CleanMyTV **is damaged and can't be opened**, you have v0.1.0, whose Mac build was
+  not signed correctly. Run this in Terminal, then open the app again:
+
+  ```bash
+  xattr -cr /Applications/CleanMyTV.app
+  codesign --force --deep --sign - /Applications/CleanMyTV.app
+  ```
 - **Windows:** when SmartScreen says it protected your PC, choose **More info**, then **Run anyway**.
 
 ## Before you start: on the TV
