@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { ConnStatus } from '@shared/api'
 import { LogDrawer } from './components/LogDrawer'
 import { NotConnected } from './components/ui'
+import Guided from './screens/Guided'
 import { Setup } from './screens/Setup'
 import { Debloat } from './screens/Debloat'
 import { Launcher } from './screens/Launcher'
@@ -12,9 +13,12 @@ import { version } from '../../../package.json'
 
 const REPO_URL = 'https://github.com/wingedpanther/cleanmytv'
 
-export type StepId = 'setup' | 'debloat' | 'launcher' | 'customise' | 'extras' | 'finish'
+export type StepId = 'guided' | 'setup' | 'debloat' | 'launcher' | 'customise' | 'extras' | 'finish'
 
 const STEPS: { id: StepId; label: string; sub: string; needsTv: boolean }[] = [
+  // The guided one-button run (#9): composes the same IPC the step screens
+  // use, so first-time owners get one path while every step stays reachable.
+  { id: 'guided', label: 'Clean & launch', sub: 'One button, every step', needsTv: true },
   { id: 'setup', label: 'Setup', sub: 'Check and connect', needsTv: false },
   { id: 'debloat', label: 'Clean up', sub: 'Turn off the bloat', needsTv: true },
   { id: 'launcher', label: 'Launcher', sub: 'Install the new Home', needsTv: true },
@@ -62,6 +66,7 @@ export default function App(): ReactNode {
 
   let screen: ReactNode
   if (current.needsTv && !connected) screen = <NotConnected onGo={() => setStep('setup')} />
+  else if (step === 'guided') screen = <Guided {...props} />
   else if (step === 'setup') screen = <Setup {...props} />
   else if (step === 'debloat') screen = <Debloat {...props} />
   else if (step === 'launcher') screen = <Launcher {...props} />
@@ -80,7 +85,7 @@ export default function App(): ReactNode {
         <nav>
           <ol className="steps">
             {STEPS.map((s, i) => {
-              const isDone = s.id === 'setup' ? connected : done.has(s.id)
+              const isDone = s.id === 'setup' ? connected : s.id === 'guided' ? done.has('debloat') && done.has('launcher') : done.has(s.id)
               return (
                 <li key={s.id}>
                   <button
