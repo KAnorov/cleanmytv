@@ -76,6 +76,20 @@ describe('launcher and theme', () => {
     expect(apps.map((a) => a.label)).toEqual(['Netflix', 'YouTube'])
   })
 
+  it('opens the launcher when the TV will not let the shell create its folder', async () => {
+    tv.appDir = 'missing'
+    const before = tv.commands.length
+    const r = await Th.apply({ config: { columns: 4 }, wallpaper: { kind: 'keep' }, wallpapers: { kind: 'keep' } })
+    expect(r.ok).toBe(true)
+    expect(tv.commands.slice(before).some((c) => c.startsWith('am start -W -n com.gathin.tvhome/.MainActivity'))).toBe(true)
+  })
+
+  it('says so plainly when the folder stays out of reach', async () => {
+    tv.appDir = 'denied'
+    await expect(Th.apply({ config: { columns: 4 }, wallpaper: { kind: 'keep' }, wallpapers: { kind: 'keep' } })).rejects.toThrow(/won't let the app write/)
+    tv.appDir = 'ok'
+  }, 15000)
+
   it('refuses wallpaper names with shell syntax', async () => {
     await expect(Th.apply({ config: {}, wallpaper: { kind: 'keep' }, wallpapers: { kind: 'set', images: [{ name: 'a;reboot.jpg', base64: '' }] } })).rejects.toThrow(/unsupported/)
   })

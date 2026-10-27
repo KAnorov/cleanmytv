@@ -17,6 +17,25 @@ const IMAGE_GLOB = ['jpg', 'jpeg', 'png', 'webp', 'JPG', 'JPEG', 'PNG', 'WEBP'].
 // enabled list (asynchronously), so put the list back if it had ours, as theme.sh does.
 const RESTART = `a=$(settings get secure enabled_accessibility_services); am force-stop ${PKG}; am start -n ${PKG}/.MainActivity >/dev/null; case "$a" in *${PKG}*) sleep 1; settings put secure enabled_accessibility_services ''; settings put secure enabled_accessibility_services "$a"; settings put secure accessibility_enabled 1 ;; esac`
 
+// Since Android 11 the shell may write inside Android/data/<pkg> but some TVs (TCL, #20) refuse to
+// create that folder: only the app can, the first time it asks Android for it. So check by writing a
+// file, and if that fails, open the launcher once so it makes the folder, then check again.
+const WRITABLE = `mkdir -p ${DIR}/wallpapers 2>&1; touch ${DIR}/.cytv 2>&1 && rm -f ${DIR}/.cytv && echo writable`
+
+async function ensureDir(): Promise<void> {
+  let out = await T.sh(TASK, WRITABLE)
+  for (let i = 0; i < 3 && !out.includes('writable'); i++) {
+    if (i === 0) await T.sh(TASK, `am start -W -n ${PKG}/.MainActivity`)
+    await new Promise((r) => setTimeout(r, 1500))
+    out = await T.sh(TASK, WRITABLE)
+  }
+  if (!out.includes('writable')) {
+    throw new Error(`This TV won't let the app write the launcher's settings folder (${DIR}). ` +
+      'Press Home on the remote so the launcher opens, then try again. If it still fails, ' +
+      'please report your TV model and Android version on GitHub.')
+  }
+}
+
 export async function read(): Promise<TvTheme> {
   const raw = await T.pullB64(`${DIR}/config.json`)
   let config: LauncherConfig = {}
@@ -51,7 +70,7 @@ function clean(config: LauncherConfig): LauncherConfig {
 export async function apply(req: ThemeApplyRequest): Promise<ApplyResult> {
   const json = Buffer.from(JSON.stringify(clean(req.config), null, 2) + '\n')
   if (json.length > 64 * 1024) throw new Error('config.json would be over 64 KB; the launcher ignores files that large.')
-  await T.sh(TASK, `mkdir -p ${DIR}/wallpapers`)
+  await ensureDir()
   await T.pushB64(TASK, json, `${DIR}/config.json`)
   if (req.wallpaper.kind === 'set') {
     await T.pushB64(TASK, Buffer.from(req.wallpaper.image.base64, 'base64'), `${DIR}/wallpaper.jpg`)
@@ -73,7 +92,8 @@ export async function apply(req: ThemeApplyRequest): Promise<ApplyResult> {
 }
 
 export async function reset(): Promise<ApplyResult> {
-  await T.sh(TASK, `mkdir -p ${DIR}; rm -f ${DIR}/config.json ${DIR}/wallpaper.jpg ${IMAGE_GLOB}; printf '%s' '${randomUUID().replace(/-/g, '')}' > ${DIR}/theme_revision; ${RESTART}; echo reset`)
+  await ensureDir()
+  await T.sh(TASK, `rm -f ${DIR}/config.json ${DIR}/wallpaper.jpg ${IMAGE_GLOB}; printf '%s' '${randomUUID().replace(/-/g, '')}' > ${DIR}/theme_revision; ${RESTART}; echo reset`)
   return { ok: true, summary: 'Back to the built-in look.', warnings: [] }
 }
 
