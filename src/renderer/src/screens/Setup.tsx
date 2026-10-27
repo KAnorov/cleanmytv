@@ -135,6 +135,14 @@ export function Setup({ status, go }: ScreenProps): ReactNode {
               Allow prompt. Close it when you're done: the Finish step walks you through it.
             </div>
           )}
+          {status.probe.sdk > 0 && status.probe.sdk < 19 && (
+            <div className="notice warn" style={{ marginTop: 16, marginBottom: 0 }}>
+              This TV reports Android {status.probe.release} (API {status.probe.sdk}). The bundled launcher needs Android
+              4.4 (API 19) or newer, so the Launcher step will likely refuse to install here. Cleanup stays available and
+              reversible (nothing is uninstalled), but check the known-devices table first, and skip the Launcher step on
+              a model listed as unsupported.
+            </div>
+          )}
           <div className="row" style={{ marginTop: 16 }}>
             <button className="btn primary" onClick={() => go('debloat')}>
               Next: clean up the TV
