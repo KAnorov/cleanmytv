@@ -41,6 +41,8 @@ export interface FakeTv {
   leanback: string[]
   launcherApps: string[]
   screenshot: Buffer
+  /** The launcher's Android/data folder: missing ones only appear once the launcher has run. */
+  appDir: 'ok' | 'missing' | 'denied'
   /** Misbehaviour for client hardening tests. */
   tokenSize?: number
   sendMalformed?: 'oversize' | 'magic'
@@ -50,7 +52,7 @@ export function newTv(): FakeTv {
   return {
     packages: new Map(), home: 'com.google.android.tvlauncher/.MainActivity', homeClaims: [], wifiOwners: 'cname=android.uid.system:1000',
     settings: new Map(), files: new Map(), commands: [], trusted: [], autoAccept: true, maxData: 4096, adbSecure: '1',
-    leanback: [], launcherApps: [], screenshot: Buffer.alloc(0)
+    leanback: [], launcherApps: [], screenshot: Buffer.alloc(0), appDir: 'ok'
   }
 }
 
@@ -84,6 +86,10 @@ function sh(tv: FakeTv, cmd: string): string {
     tv.packages.set('com.gathin.tvhome', 'enabled'); tv.homeClaims = [...new Set([...tv.homeClaims, 'com.gathin.tvhome/.MainActivity'])]
     return 'Performing Streamed Install\nSuccess\n'
   }
+  if ((m = /^mkdir -p (\S+)\/wallpapers 2>&1; touch/.exec(cmd))) {
+    return tv.appDir === 'ok' ? 'writable\n' : `mkdir: '${m[1]}': Permission denied\ntouch: '${m[1]}/.cytv': No such file or directory\n`
+  }
+  if (cmd.startsWith('am start -W') && tv.appDir === 'missing') tv.appDir = 'ok'
   if (cmd.startsWith('am start -W')) return 'Starting: Intent { cmp=com.gathin.tvhome/.MainActivity }\nStatus: ok\nLaunchState: COLD\n'
   if ((m = /^cmd package set-home-activity --user 0 (\S+\/\S+)$/.exec(cmd))) { tv.home = m[1]; return 'Success\n' }
   // set-home-activity $(resolve-activity ... <pkg> | tail -n 1): the TV's shell resolves the component.
