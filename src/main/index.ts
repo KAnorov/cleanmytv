@@ -12,6 +12,7 @@ import * as system from './system'
 import * as tools from './toolchain'
 import { localSubnets, scan } from './scan'
 import { reconnect } from './reconnect'
+import * as web from './web'
 import type { CheckItem, ConnStatus, CytvApi } from '@shared/api'
 
 let win: BrowserWindow | null = null
@@ -119,6 +120,7 @@ const handlers: Omit<Handlers, 'onLog' | 'onProgress' | 'onStatus'> = {
   resetTheme: () => theme.reset(),
   presets: async () => theme.presets(),
   screenshot: () => theme.screenshot(),
+  webGet: (url) => web.get(String(url)),
   systemState: () => system.state(),
   setClockScreensaver: (on) => system.clockScreensaver(on),
   setPrivateDns: (host) => system.privateDns(host),

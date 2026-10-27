@@ -238,6 +238,13 @@ export interface LogLine {
   time: number
 }
 
+/** A download for the background sources, made by the main process. */
+export interface WebResponse {
+  status: number
+  contentType: string
+  base64: string
+}
+
 export interface CytvApi {
   platform: 'darwin' | 'win32' | 'linux'
 
@@ -282,6 +289,8 @@ export interface CytvApi {
   presets(): Promise<ThemePreset[]>
   /** PNG of the TV screen as a data URL. */
   screenshot(): Promise<string>
+  /** HTTPS GET from Bing or TMDB only (the page itself has no network access). */
+  webGet(url: string): Promise<WebResponse>
 
   // TV extras
   systemState(): Promise<SystemState>

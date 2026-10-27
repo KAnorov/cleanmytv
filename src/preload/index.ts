@@ -7,7 +7,7 @@ const methods = [
   'checks', 'download',
   'lists', 'plan', 'applyDebloat', 'restore',
   'launcherStatus', 'install', 'buildLocal', 'useStockLauncher',
-  'apps', 'readTheme', 'applyTheme', 'resetTheme', 'presets', 'screenshot',
+  'apps', 'readTheme', 'applyTheme', 'resetTheme', 'presets', 'screenshot', 'webGet',
   'systemState', 'setClockScreensaver', 'setPrivateDns', 'setAnimationScale', 'setLauncherLocale', 'key', 'reboot'
 ] as const
 

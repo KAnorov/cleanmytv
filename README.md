@@ -22,7 +22,7 @@ Get the latest version from [Releases](https://github.com/wingedpanther/cleanmyt
 |---|---|
 | Mac with Apple silicon (M1 and later) | `CleanMyTV-<version>-arm64.dmg` |
 | Mac with Intel | `CleanMyTV-<version>.dmg` |
-| Windows 10 or 11 | `CleanMyTV Setup <version>.exe` |
+| Windows 10 or 11 | `CleanMyTV-Setup-<version>.exe` |
 
 The installers are not signed with a paid developer certificate, so your computer warns you the first
 time:
@@ -85,8 +85,9 @@ itself.
 
 - **What it talks to.** Only the TV address you choose, over ADB on port 5555 of your local network.
   The optional downloads (Java, the Android SDK, Google's `adb`, the launcher source) come from
-  Adoptium, dl.google.com and GitHub over HTTPS, and only when you click them. No analytics, no
-  accounts, no server of its own.
+  Adoptium, dl.google.com and GitHub over HTTPS, and only when you click them. The background
+  sources in Customise fetch from www.bing.com, or from api.themoviedb.org and image.tmdb.org with
+  your own TMDB key, only when you use them. No analytics, no accounts, no server of its own.
 - **Your keys.** The app makes its own ADB key in its data folder and signs only with that. It never
   uses `~/.android/adbkey`, which your phones may also trust, and it only logs in to an address you
   picked. Network ADB is plaintext by design, so use it on a network you trust.

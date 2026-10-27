@@ -320,6 +320,9 @@ export function installMock(): void {
       await wait(900)
       return gradientUrl('#101820', '#0b2a3a', '#000000')
     },
+    async webGet() {
+      throw new Error('Background sources need the desktop app.')
+    },
     async systemState() {
       return { ...sys }
     },
