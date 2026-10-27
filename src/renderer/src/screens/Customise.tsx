@@ -241,7 +241,11 @@ function AppsTab({ apps, cfg, set }: { apps: TvApp[]; cfg: LauncherConfig; set: 
   const ordered = orderedApps(apps, cfg)
   const hidden = new Set(val(cfg, 'hidden_apps'))
   const columns = val(cfg, 'columns')
-  const phoneApps = apps.filter((a) => !a.tv).length
+  // Non-TV (phone) apps never reach the Home grid — the launcher only lists
+  // them in the App library. Surfacing them by name here answers "where did
+  // my sideloaded app go" in one glance instead of a bare count (#3).
+  const phoneAppList = apps.filter((a) => !a.tv).sort((a, b) => a.label.localeCompare(b.label))
+  const phoneApps = phoneAppList.length
   const missingDock = (cfg.dock_apps ?? []).filter((p) => !apps.some((a) => a.pkg === p))
 
   return (
@@ -281,9 +285,25 @@ function AppsTab({ apps, cfg, set }: { apps: TvApp[]; cfg: LauncherConfig; set: 
       />
       <div className="notice" style={{ marginTop: 16 }}>
         If you reordered tiles on the TV itself, Apply replaces that order with this one.
-        {phoneApps > 0 && ` ${phoneApps} phone apps aren't shown: they only reach Home through the App library (Layout tab).`}
         {missingDock.length > 0 && ` ${missingDock.length} apps in the saved order aren't installed and are left out.`}
       </div>
+
+      {phoneApps > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <h3>Phone apps on this TV ({phoneApps})</h3>
+          <p className="muted small">
+            These have no TV interface, so the launcher keeps them off the Home grid — they only appear in the App library
+            (Layout tab). Nothing to fix here; this list is just so you know they are still installed and reachable.
+          </p>
+          <div className="thumbs" style={{ flexWrap: 'wrap', gap: 6 }}>
+            {phoneAppList.map((a) => (
+              <span key={a.pkg} className="chip optional" style={{ textTransform: 'none' }}>
+                {a.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
