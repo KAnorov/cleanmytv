@@ -129,7 +129,7 @@ export function installMock(): void {
     await wait(400)
     progress.forEach((cb) => cb({ tool, received: total, total, phase: 'done' }))
     tools[tool] = true
-    log('download', 'ok', `${tool} ready`)
+    log('download', 'ok', `${tool}: готово`)
     return ok(`${tool} downloaded`)
   }
 
@@ -143,7 +143,7 @@ export function installMock(): void {
       setStatus({ state: 'connecting', host })
       await wait(700)
       if (host === '192.168.1.73') {
-        const s: ConnStatus = { state: 'error', host, needsPairing: true, error: 'The TV answered but wants Wireless debugging pairing first.' }
+        const s: ConnStatus = { state: 'error', host, needsPairing: true, error: 'TV ответил, но сначала требует сопряжение по Wi-Fi.' }
         setStatus(s)
         return s
       }
@@ -151,7 +151,7 @@ export function installMock(): void {
       await wait(2500)
       const s: ConnStatus = { state: 'connected', host, probe: { ...probe, host } }
       setStatus(s)
-      log('connect', 'ok', `Connected to ${probe.manufacturer} ${probe.model}`)
+      log('connect', 'ok', `Подключено к ${probe.manufacturer} ${probe.model}`)
       return s
     },
     async disconnect() {
@@ -179,14 +179,14 @@ export function installMock(): void {
       await wait(300)
       const connected = status.state === 'connected'
       const items: CheckItem[] = [
-        { id: 'network', label: 'This computer is on a network', status: 'ok', detail: 'Wi-Fi, 192.168.1.20' },
-        { id: 'tv', label: 'TV answers on port 5555', status: connected ? 'ok' : 'missing', detail: connected ? `${status.host}` : 'Turn on USB debugging on the TV, then find it below.' },
-        { id: 'auth', label: 'TV allows this computer', status: connected ? 'ok' : 'missing', detail: connected ? 'Allowed' : 'The TV asks once. Choose Allow.' },
-        { id: 'apk', label: 'Launcher app', status: 'ok', detail: 'Bundled with this app, version 2.4' },
-        { id: 'jdk', label: 'Java 17 (only to build from source)', status: tools.jdk ? 'ok' : 'optional', detail: tools.jdk ? 'Temurin 17.0.12' : 'About 190 MB', download: tools.jdk ? undefined : 'jdk' },
-        { id: 'sdk', label: 'Android SDK 34 (only to build from source)', status: tools.sdk ? 'ok' : 'optional', detail: tools.sdk ? 'platforms;android-34, build-tools;34.0.0' : 'About 160 MB', download: tools.sdk ? undefined : 'sdk' },
-        { id: 'source', label: 'Launcher source code', status: tools.source ? 'ok' : 'optional', detail: tools.source ? 'cleanyourtv main' : 'From GitHub, about 6 MB', download: tools.source ? undefined : 'source' },
-        { id: 'platform-tools', label: "Google's adb (only for pairing)", status: tools['platform-tools'] ? 'ok' : 'optional', detail: 'Some Google TVs need a one-time pairing code.', download: tools['platform-tools'] ? undefined : 'platform-tools' }
+      { id: 'network', label: 'Компьютер в локальной сети', status: 'ok', detail: 'Wi-Fi, 192.168.1.20' },
+      { id: 'tv', label: 'TV доступен на порту 5555', status: connected ? 'ok' : 'missing', detail: connected ? `${status.host}` : 'Включите отладку по USB на TV и найдите его ниже.' },
+      { id: 'auth', label: 'TV разрешает этому компьютеру', status: connected ? 'ok' : 'missing', detail: connected ? 'Разрешено' : 'TV спросит один раз. Выберите «Разрешить».' },
+      { id: 'apk', label: 'Приложение лаунчера', status: 'ok', detail: 'Встроено в приложение, версия 2.4' },
+      { id: 'jdk', label: 'Java 17 (только для сборки из исходников)', status: tools.jdk ? 'ok' : 'optional', detail: tools.jdk ? 'Temurin 17.0.12' : 'Около 190 МБ', download: tools.jdk ? undefined : 'jdk' },
+      { id: 'sdk', label: 'Android SDK 34 (только для сборки из исходников)', status: tools.sdk ? 'ok' : 'optional', detail: tools.sdk ? 'platforms;android-34, build-tools;34.0.0' : 'Около 160 МБ', download: tools.sdk ? undefined : 'sdk' },
+      { id: 'source', label: 'Исходники лаунчера', status: tools.source ? 'ok' : 'optional', detail: tools.source ? 'cleanyourtv main' : 'С GitHub, около 6 МБ', download: tools.source ? undefined : 'source' },
+      { id: 'platform-tools', label: 'Google adb (только для сопряжения)', status: tools['platform-tools'] ? 'ok' : 'optional', detail: 'Некоторым Google TV нужен одноразовый код сопряжения.', download: tools['platform-tools'] ? undefined : 'platform-tools' }
       ]
       return items
     },
@@ -196,7 +196,7 @@ export function installMock(): void {
       return [
         { id: 'sony-bravia-9-ii', title: 'Sony BRAVIA 9 II, K-65XR90M2 (2026, device BRAVIA_AE3, MediaTek MT5838)', score: 9 },
         { id: 'sony-bravia-4k-ae2', title: 'Sony BRAVIA 4K AE2 (BRAVIA_AE2, MediaTek MT5897), North America', score: 3 },
-        { id: 'custom', title: 'Start from the packages on this TV', score: 0 },
+        { id: 'custom', title: 'Начать с пакетов на этом TV', score: 0 },
         { id: 'tcl-g10-google-tv', title: 'TCL 55" 4K Google TV, 2023 (G10, Realtek RTD2875P)', score: 0 },
         { id: 'xiaomi-mi-box-s', title: 'Xiaomi Mi Box S (MIBOX4, oneday), streaming box', score: 0 },
         { id: 'philips-r8g-google-tv', title: 'Philips R8G Google TV (MOKA, Realtek RTD2851F), US', score: 0 }
@@ -207,21 +207,21 @@ export function installMock(): void {
       return {
         listId,
         title: 'Sony BRAVIA 9 II, K-65XR90M2 (2026, device BRAVIA_AE3, MediaTek MT5838)',
-        header: ['Google TV 14 (API 34), build UKN4.250422.001.', 'Everything is DISABLED, not uninstalled.'],
+        header: ['Google TV 14 (API 34), сборка UKN4.250422.001.', 'Всё отключается, а не удаляется.'],
         entries: entries.map((e) => ({ ...e })),
         record,
         homePackage: launcherHome ? 'com.gathin.tvhome' : 'com.google.android.apps.tv.launcherx'
       }
     },
     async applyDebloat(req) {
-      log('debloat', 'info', 'Recording the current state first')
+      log('debloat', 'info', 'Сначала записываем текущее состояние')
       await wait(500)
       if (!record) record = { path: '~/.cleanyourtv/recovery-192.168.1.50-3fa1b2c4.json', created: new Date().toISOString() }
       const warnings: string[] = []
       for (const pkg of req.disable) {
         const e = entries.find((x) => x.pkg === pkg)
         if (pkg === 'com.google.android.apps.tv.launcherx' && !launcherHome && !req.forceHome) {
-          warnings.push('Skipped com.google.android.apps.tv.launcherx: it owns Home. Install the new launcher first, then apply again.')
+          warnings.push('Пропущен com.google.android.apps.tv.launcherx: он владеет Home. Сначала установите новый лаунчер, затем примените снова.')
           continue
         }
         log('debloat', 'cmd', `pm disable-user --user 0 ${pkg}`)
@@ -236,15 +236,15 @@ export function installMock(): void {
         const e = entries.find((x) => x.pkg === pkg)
         if (e) e.state = 'enabled'
       }
-      return ok(`Disabled ${req.disable.length - warnings.length} packages, switched ${req.enable.length} back on.`, warnings)
+      return ok(`Отключено ${req.disable.length - warnings.length} пакетов, включено обратно: ${req.enable.length}.`, warnings)
     },
     async restore() {
       await wait(900)
       entries.forEach((e) => {
         if (e.recorded) e.state = e.recorded
       })
-      log('restore', 'ok', 'Restored the recorded state')
-      return ok('Put back the state recorded before the first change.')
+      log('restore', 'ok', 'Записанное состояние восстановлено')
+      return ok('Состояние до первого изменения восстановлено.')
     },
     async launcherStatus() {
       await wait(300)
@@ -261,7 +261,7 @@ export function installMock(): void {
     },
     async install(req) {
       const steps: [LogLine['level'], string][] = [
-        ['info', 'Uploading the launcher (390 KB)'],
+        ['info', 'Загружаем лаунчер (390 КБ)'],
         ['cmd', 'pm install -r /data/local/tmp/tvhome.apk'],
         ['cmd', 'am start -W -n com.gathin.tvhome/.MainActivity'],
         ['cmd', 'cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity']
@@ -273,16 +273,16 @@ export function installMock(): void {
       if (req.inputKeyService) log('install', 'cmd', 'settings put secure enabled_accessibility_services com.gathin.tvhome/.InputKeyService')
       launcherInstalled = true
       launcherHome = true
-      return { ok: true, summary: 'Installed. Press Home on the remote to see it.', warnings: [] }
+      return { ok: true, summary: 'Установлено. Нажмите Home на пульте, чтобы увидеть.', warnings: [] }
     },
     async buildLocal() {
       log('build', 'cmd', './gradlew assembleRelease')
       await wait(2000)
-      return ok('Built app-release.apk from source.')
+      return ok('app-release.apk собран из исходников.')
     },
     async useStockLauncher() {
       launcherHome = false
-      return ok('Home belongs to com.google.android.apps.tv.launcherx again.')
+      return ok('Home снова принадлежит com.google.android.apps.tv.launcherx.')
     },
     async apps() {
       await wait(300)
@@ -293,7 +293,7 @@ export function installMock(): void {
       return structuredClone(theme)
     },
     async applyTheme(req) {
-      log('theme', 'info', 'Pushing config.json')
+      log('theme', 'info', 'Отправляем config.json')
       await wait(700)
       theme = {
         present: true,
@@ -306,12 +306,12 @@ export function installMock(): void {
               : theme.wallpaper,
         wallpapers: req.wallpapers.kind === 'set' ? req.wallpapers.images.map((i) => i.name) : theme.wallpapers
       }
-      log('theme', 'ok', 'Home restarted with the new theme')
-      return ok('Applied. Home restarted on the TV.')
+      log('theme', 'ok', 'Home перезапущен с новой темой')
+      return ok('Применено. Home перезапущен на TV.')
     },
     async resetTheme() {
       theme = { present: false, config: {}, wallpaper: null, wallpapers: [] }
-      return ok('Removed the theme. The launcher uses its built-in look.')
+      return ok('Тема удалена. Лаунчер использует встроенный вид.')
     },
     async presets() {
       return presets
@@ -321,7 +321,7 @@ export function installMock(): void {
       return gradientUrl('#101820', '#0b2a3a', '#000000')
     },
     async webGet() {
-      throw new Error('Background sources need the desktop app.')
+      throw new Error('Источники обоев доступны только в настольном приложении.')
     },
     async systemState() {
       return { ...sys }

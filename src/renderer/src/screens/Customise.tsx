@@ -13,12 +13,12 @@ type WallChange = { kind: 'keep' } | { kind: 'remove' } | { kind: 'set'; image: 
 type RotationChange = { kind: 'keep' } | { kind: 'set'; images: PreparedImage[] }
 
 const TABS: [Tab, string][] = [
-  ['apps', 'Apps & order'],
-  ['layout', 'Layout'],
-  ['backdrop', 'Backdrop'],
-  ['greeting', 'Greeting'],
-  ['motion', 'Motion'],
-  ['advanced', 'Advanced']
+  ['apps', 'Приложения'],
+  ['layout', 'Макет'],
+  ['backdrop', 'Фон'],
+  ['greeting', 'Приветствие'],
+  ['motion', 'Анимация'],
+  ['advanced', 'Прочее']
 ]
 
 export function Customise({ markDone }: ScreenProps): ReactNode {
@@ -70,7 +70,7 @@ export function Customise({ markDone }: ScreenProps): ReactNode {
   const previewWall = wallpaperUrl ?? (val(cfg, 'wallpaper_rotation_minutes') > 0 ? (firstRotation ?? null) : null)
 
   async function apply(): Promise<void> {
-    setBusy('Pushing the theme and restarting Home on the TV')
+    setBusy('Отправляем тему и перезапускаем Home на TV')
     setResult(null)
     const req: ThemeApplyRequest = {
       config: cfg,
@@ -93,7 +93,7 @@ export function Customise({ markDone }: ScreenProps): ReactNode {
 
   async function reset(): Promise<void> {
     setConfirmReset(false)
-    setBusy('Removing the theme from the TV')
+    setBusy('Удаляем тему с TV')
     try {
       setResult(await window.cytv.resetTheme())
       await load()
@@ -105,7 +105,7 @@ export function Customise({ markDone }: ScreenProps): ReactNode {
   }
 
   async function screenshot(): Promise<void> {
-    setBusy('Taking a screenshot on the TV')
+    setBusy('Делаем снимок экрана TV')
     try {
       setShot(await window.cytv.screenshot())
     } catch (e) {
@@ -118,28 +118,28 @@ export function Customise({ markDone }: ScreenProps): ReactNode {
   if (loadError)
     return (
       <div className="content">
-        <h1>Customise</h1>
+        <h1>Настройка</h1>
         <div className="notice error">{loadError}</div>
         <button className="btn" onClick={load}>
-          Try again
+          Попробовать снова
         </button>
       </div>
     )
   if (!apps || !loaded)
     return (
       <div className="content">
-        <h1>Customise</h1>
-        <Busy text="Reading the apps and the current theme from the TV" />
+        <h1>Настройка</h1>
+        <Busy text="Читаем приложения и текущую тему с TV" />
       </div>
     )
 
   return (
     <>
       <div className="content with-footer">
-        <h1>Customise</h1>
+        <h1>Настройка</h1>
         <p className="lede">
-          Changes show in the preview straight away and reach the TV when you press Apply. No rebuild: the launcher reads them
-          the next time Home starts. A setting you never touch keeps the launcher's built-in value.
+          Изменения сразу видны в предпросмотре и попадут на TV после нажатия «Применить». Пересборка не нужна: лаунчер
+          прочитает их при следующем запуске Home. Настройка, которую вы не трогали, остаётся встроенной.
         </p>
         <ResultNotice result={result} onDismiss={() => setResult(null)} />
 
@@ -175,8 +175,9 @@ export function Customise({ markDone }: ScreenProps): ReactNode {
           <div className="custom-preview">
             <TvPreview apps={apps} cfg={cfg} wallpaper={previewWall} />
             <p className="preview-caption">
-              A sketch of Home with your settings. Tiles show initials because the app can't read app artwork from the TV. Click a
-              dock tile to focus it. For the real thing, take a screenshot.
+              Эскиз Home с вашими настройками. На плитках показаны инициалы, потому что приложение не может прочитать
+              иконки приложений с TV. Нажмите на плитку дока, чтобы выделить её. Чтобы увидеть реальный экран, сделайте
+              снимок.
             </p>
           </div>
         </div>
@@ -184,49 +185,50 @@ export function Customise({ markDone }: ScreenProps): ReactNode {
 
       <div className="sticky-foot">
         <button className="btn primary" onClick={apply} disabled={!dirty || !!busy}>
-          Apply to TV
+          Применить на TV
         </button>
         <button className="btn" onClick={load} disabled={!dirty || !!busy}>
-          Undo changes
+          Отменить изменения
         </button>
         <button className="btn ghost" onClick={() => setConfirmReset(true)} disabled={!!busy || (!loaded.present && !dirty)}>
-          Reset to built-in look
+          Сбросить к встроенному виду
         </button>
         <button className="btn ghost" onClick={screenshot} disabled={!!busy}>
-          Screenshot from TV
+          Снимок экрана с TV
         </button>
         <span className="spacer" />
         {busy ? (
           <Busy text={busy} />
         ) : dirty ? (
-          <span className="small">
+            <span className="small">
             <span className="dirty-dot" />
-            Not on the TV yet. Applying also clears column and motion choices made on the TV.
+            Ещё не на TV. Применение также сбросит настройки колонок и анимации, сделанные на TV.
           </span>
         ) : (
-          <span className="small muted">{loaded.present ? 'The TV has these settings.' : 'The TV uses the built-in look.'}</span>
+          <span className="small muted">{loaded.present ? 'На TV уже эти настройки.' : 'TV использует встроенный вид.'}</span>
         )}
       </div>
 
       {confirmReset && (
-        <Confirm title="Reset to the built-in look?" confirmLabel="Reset" onConfirm={reset} onCancel={() => setConfirmReset(false)}>
-          <p>The theme file and wallpapers come off the TV, and Home restarts with the launcher's built-in dock and colours.</p>
-          <p className="muted small">Apps added or removed through the App library on the TV stay as they are.</p>
+        <Confirm title="Сбросить к встроенному виду?" confirmLabel="Сбросить" onConfirm={reset} onCancel={() => setConfirmReset(false)}>
+          <p>Файл темы и обои будут удалены с TV, а Home перезапустится со встроенным доком и цветами лаунчера.</p>
+          <p className="muted small">Приложения, добавленные или удалённые через библиотеку приложений на TV, останутся как есть.</p>
         </Confirm>
       )}
       {shot && (
         <Modal wide onClose={() => setShot(null)}>
-          <h2>The TV right now</h2>
-          <img className="shot" src={shot} alt="Screenshot of the TV" />
+          <h2>TV прямо сейчас</h2>
+          <img className="shot" src={shot} alt="Снимок экрана TV" />
           <p className="muted small" style={{ marginTop: 10 }}>
-            A black picture usually means Live TV, an HDMI input or a streaming app was on screen. Press Home and try again.
+            Чёрный снимок обычно означает, что на экране было Live TV, HDMI-вход или стриминговое приложение. Нажмите
+            Home и попробуйте снова.
           </p>
           <div className="modal-actions">
             <button className="btn" onClick={screenshot}>
-              Take another
+              Сделать ещё
             </button>
             <button className="btn primary" onClick={() => setShot(null)}>
-              Close
+              Закрыть
             </button>
           </div>
         </Modal>
@@ -251,24 +253,24 @@ function AppsTab({ apps, cfg, set }: { apps: TvApp[]; cfg: LauncherConfig; set: 
   return (
     <div>
       <p className="muted">
-        Drag tiles into the order you want, or use the arrows. The first {columns} visible apps make the dock. The rest follow
-        in the grid in this order.
+        Перетащите плитки в нужном порядке или используйте стрелки. Первые {columns} видимых приложений образуют док.
+        Остальные идут в сетке в этом же порядке.
       </p>
       <div className="dock-legend">
         <span>
           <span className="swatch" />
-          Dock
+          Док
         </span>
         <span>
           <span className="swatch" style={{ background: 'var(--white)', borderColor: 'var(--line)' }} />
-          Grid
+          Сетка
         </span>
         <span className="spacer" />
         <button className="btn small ghost" onClick={() => set('dock_apps', undefined)} disabled={!cfg.dock_apps}>
-          Reset order
+          Сбросить порядок
         </button>
         <button className="btn small ghost" onClick={() => set('hidden_apps', undefined)} disabled={!cfg.hidden_apps}>
-          Show all
+          Показать все
         </button>
       </div>
       <AppOrder
@@ -284,16 +286,17 @@ function AppsTab({ apps, cfg, set }: { apps: TvApp[]; cfg: LauncherConfig; set: 
         }}
       />
       <div className="notice" style={{ marginTop: 16 }}>
-        If you reordered tiles on the TV itself, Apply replaces that order with this one.
-        {missingDock.length > 0 && ` ${missingDock.length} apps in the saved order aren't installed and are left out.`}
+        Если вы меняли порядок плиток на самом TV, «Применить» заменит его этим порядком.
+        {missingDock.length > 0 && ` ${missingDock.length} приложений из сохранённого порядка не установлены и будут пропущены.`}
       </div>
 
       {phoneApps > 0 && (
         <div style={{ marginTop: 16 }}>
-          <h3>Phone apps on this TV ({phoneApps})</h3>
+          <h3>Телефонные приложения на этом TV ({phoneApps})</h3>
           <p className="muted small">
-            These have no TV interface, so the launcher keeps them off the Home grid — they only appear in the App library
-            (Layout tab). Nothing to fix here; this list is just so you know they are still installed and reachable.
+            У них нет ТВ-интерфейса, поэтому лаунчер не показывает их в сетке Home — они доступны только в библиотеке
+            приложений (вкладка «Макет»). Здесь ничего чинить не нужно; список просто показывает, что они установлены и
+            доступны.
           </p>
           <div className="thumbs" style={{ flexWrap: 'wrap', gap: 6 }}>
             {phoneAppList.map((a) => (
@@ -312,29 +315,29 @@ function LayoutTab({ cfg, set }: { cfg: LauncherConfig; set: SetFn }): ReactNode
   return (
     <div className="stack" style={{ gap: 18 }}>
       <Slider
-        label="Apps per row"
-        hint="The dock has this many slots too. Tiles shrink to fit from 5 up."
+        label="Приложений в ряду"
+        hint="В доке столько же мест. Начиная с 5 плитки уменьшаются, чтобы поместиться."
         value={val(cfg, 'columns')}
         min={4}
         max={8}
         onChange={(v) => set('columns', v)}
       />
       <Slider
-        label="Grid rows under the dock"
-        hint="0 parks the dock at the bottom of the screen."
+        label="Рядов сетки под доком"
+        hint="0 прижимает док к нижнему краю экрана."
         value={val(cfg, 'rows_below_dock')}
         min={0}
         max={3}
         onChange={(v) => set('rows_below_dock', v)}
       />
       <div>
-        <Toggle label="Dock as its own row" hint="A lighter band with no names under the tiles. Off makes one plain grid." checked={val(cfg, 'dock_row')} onChange={(v) => set('dock_row', v)} />
-        <Toggle label="App name above the dock" hint="The focused app's name in large type. Off keeps only the glow and leaves room for bigger tiles." checked={val(cfg, 'dock_title')} onChange={(v) => set('dock_title', v)} />
-        <Toggle label="Fill empty dock slots" hint="With fewer dock apps than slots, the first grid apps move up. Off leaves the slots empty." checked={val(cfg, 'fill_dock')} onChange={(v) => set('fill_dock', v)} />
-        <Toggle label="App library" hint="A pill after the last row lists every installed app, so you can add or remove Home shortcuts with the remote." checked={val(cfg, 'app_library')} onChange={(v) => set('app_library', v)} />
-        <Toggle label="Reorder button in the top bar" hint="Reordering is also in the Settings button's long-press menu." checked={val(cfg, 'reorder_button')} onChange={(v) => set('reorder_button', v)} />
-        <Toggle label="CPU, memory and storage under the clock" hint="Refreshes only while Home is on screen." checked={val(cfg, 'show_stats')} onChange={(v) => set('show_stats', v)} />
-        <Toggle label="Default-home tile" hint="A tile that opens Android's home picker, on TVs that have one." checked={val(cfg, 'show_home_settings_shortcut')} onChange={(v) => set('show_home_settings_shortcut', v)} />
+        <Toggle label="Док отдельным рядом" hint="Более светлая полоса без названий под плитками. Выкл. — одна общая сетка." checked={val(cfg, 'dock_row')} onChange={(v) => set('dock_row', v)} />
+        <Toggle label="Название приложения над доком" hint="Крупное имя приложения в фокусе. Выкл. оставляет только свечение и место для плиток покрупнее." checked={val(cfg, 'dock_title')} onChange={(v) => set('dock_title', v)} />
+        <Toggle label="Заполнять пустые места в доке" hint="Если приложений меньше, чем мест, первые приложения из сетки поднимаются вверх. Выкл. оставляет места пустыми." checked={val(cfg, 'fill_dock')} onChange={(v) => set('fill_dock', v)} />
+        <Toggle label="Библиотека приложений" hint="Кнопка после последнего ряда показывает все установленные приложения, чтобы добавлять и убирать ярлыки с пульта." checked={val(cfg, 'app_library')} onChange={(v) => set('app_library', v)} />
+        <Toggle label="Кнопка изменения порядка в верхней панели" hint="Порядок также доступен в меню долгого нажатия кнопки Settings." checked={val(cfg, 'reorder_button')} onChange={(v) => set('reorder_button', v)} />
+        <Toggle label="CPU, память и накопитель под часами" hint="Обновляется только пока Home на экране." checked={val(cfg, 'show_stats')} onChange={(v) => set('show_stats', v)} />
+        <Toggle label="Плитка выбора Home" hint="Плитка, открывающая системный выбор главного экрана, если он есть на TV." checked={val(cfg, 'show_home_settings_shortcut')} onChange={(v) => set('show_home_settings_shortcut', v)} />
       </div>
     </div>
   )
@@ -371,11 +374,11 @@ function BackdropTab(props: {
 
   async function addBing(): Promise<void> {
     setErr(null)
-    setWorking('Fetching the Bing picture of the day')
+    setWorking('Загружаем картинку дня Bing')
     try {
       addToRotation([await fetchBingDaily()])
     } catch (e) {
-      setErr(`The Bing picture could not be fetched: ${errorText(e)}`)
+      setErr(`Не удалось загрузить картинку Bing: ${errorText(e)}`)
     } finally {
       setWorking(null)
     }
@@ -386,24 +389,24 @@ function BackdropTab(props: {
     const list = Number(tmdbList.trim())
     setErr(null)
     if (!key || !Number.isInteger(list) || list <= 0) {
-      setErr('Enter your TMDB API key and a list number (digits only, from themoviedb.org/list/…).')
+      setErr('Введите ключ TMDB API и номер списка (только цифры, из адреса themoviedb.org/list/…).')
       return
     }
-    setWorking('Fetching movie backdrops from TMDB')
+    setWorking('Загружаем кадры фильмов из TMDB')
     try {
       const paths = (await tmdbBackdropPaths(list, key)).slice(0, 20)
       if (!paths.length) {
-        setErr('That TMDB list has no backdrops to use.')
+        setErr('В этом списке TMDB нет подходящих кадров.')
         return
       }
       const images: PreparedImage[] = []
       for (let i = 0; i < paths.length; i++) {
-        setWorking(`Fetching backdrop ${i + 1} of ${paths.length}`)
+        setWorking(`Загружаем кадр ${i + 1} из ${paths.length}`)
         images.push(await fetchTmdbBackdrop(paths[i]))
       }
       addToRotation(images)
     } catch (e) {
-      setErr(`TMDB could not be used: ${errorText(e)}`)
+      setErr(`Не удалось использовать TMDB: ${errorText(e)}`)
     } finally {
       setWorking(null)
     }
@@ -412,13 +415,13 @@ function BackdropTab(props: {
   async function pickSingle(files: FileList | null): Promise<void> {
     if (!files?.[0]) return
     setErr(null)
-    setWorking('Sizing the picture for the TV')
+    setWorking('Подгоняем картинку под TV')
     try {
       const img = await prepareWallpaper(files[0], 'wallpaper.jpg')
       props.setWall({ kind: 'set', image: img })
       set('wallpaper', true)
     } catch (e) {
-      setErr(`That picture could not be read: ${errorText(e)}`)
+      setErr(`Не удалось прочитать картинку: ${errorText(e)}`)
     } finally {
       setWorking(null)
     }
@@ -431,14 +434,14 @@ function BackdropTab(props: {
     const out: PreparedImage[] = props.rotation.kind === 'set' ? [...props.rotation.images] : []
     try {
       for (let i = 0; i < list.length; i++) {
-        setWorking(`Sizing picture ${i + 1} of ${list.length}`)
+        setWorking(`Подгоняем картинку ${i + 1} из ${list.length}`)
         out.push(await prepareWallpaper(list[i]))
       }
       props.setRotation({ kind: 'set', images: uniqueNames(out).slice(0, 100) })
       set('wallpaper', true)
       if (!rotationMinutes) set('wallpaper_rotation_minutes', 30)
     } catch (e) {
-      setErr(`One of the pictures could not be read: ${errorText(e)}`)
+      setErr(`Не удалось прочитать одну из картинок: ${errorText(e)}`)
     } finally {
       setWorking(null)
     }
@@ -457,7 +460,7 @@ function BackdropTab(props: {
     <div className="stack" style={{ gap: 20 }}>
       {props.presets.length > 0 && (
         <div>
-          <h3>Start from a theme</h3>
+          <h3>Начать с готовой темы</h3>
           <div className="presets">
             {props.presets.map((p) => (
               <button key={p.id} className="preset" onClick={() => applyPreset(p)}>
@@ -475,8 +478,8 @@ function BackdropTab(props: {
 
       <div className="row" style={{ alignItems: 'flex-end' }}>
         <label className="field">
-          Background colour
-          <span className="hint">Behind everything. Keep it dark: the clock and names are white.</span>
+          Цвет фона
+          <span className="hint">Фон для всего. Оставьте тёмным: часы и названия белые.</span>
           <div className="row">
             <input type="color" value={normHex(val(cfg, 'background_color'))} onChange={(e) => set('background_color', e.target.value.toUpperCase())} />
             <input type="text" value={val(cfg, 'background_color')} onChange={(e) => /^#[0-9a-fA-F]{6}$/.test(e.target.value) && set('background_color', e.target.value)} style={{ width: 110 }} />
@@ -485,33 +488,33 @@ function BackdropTab(props: {
       </div>
 
       <div>
-        <h3>Wallpaper</h3>
+        <h3>Обои</h3>
         <p className="muted small">
-          Any picture works. The app crops it to 1920×1080 and shrinks it under 300 KB, because a 1 GB TV decodes it on every
-          Home start.
+          Подойдёт любая картинка. Приложение обрежет её до 1920×1080 и сожмёт до 300 КБ, потому что TV с 1 ГБ памяти
+          декодирует её при каждом запуске Home.
         </p>
-        <Toggle label="Show a wallpaper" checked={val(cfg, 'wallpaper')} onChange={(v) => set('wallpaper', v)} />
+        <Toggle label="Показывать обои" checked={val(cfg, 'wallpaper')} onChange={(v) => set('wallpaper', v)} />
         <div className="row" style={{ marginTop: 8 }}>
           {props.wallpaperUrl && (
             <div className="thumb">
-              <img src={props.wallpaperUrl} alt="Current wallpaper" />
+              <img src={props.wallpaperUrl} alt="Текущие обои" />
               <span>
-                {props.wall.kind === 'set' ? `New, ${Math.round(props.wall.image.bytes / 1024)} KB` : 'On the TV'}
+                {props.wall.kind === 'set' ? `Новые, ${Math.round(props.wall.image.bytes / 1024)} КБ` : 'На TV'}
               </span>
             </div>
           )}
           <input ref={single} type="file" accept="image/*" hidden onChange={(e) => pickSingle(e.target.files).then(() => (e.target.value = ''))} />
           <button className="btn small" onClick={() => single.current?.click()} disabled={!!working}>
-            {props.wallpaperUrl ? 'Choose another picture' : 'Choose a picture'}
+            {props.wallpaperUrl ? 'Выбрать другую картинку' : 'Выбрать картинку'}
           </button>
           {props.wallpaperUrl && (
             <button className="btn small ghost" onClick={() => props.setWall({ kind: 'remove' })}>
-              Remove
+              Удалить
             </button>
           )}
           {props.wall.kind !== 'keep' && (
             <button className="btn small ghost" onClick={() => props.setWall({ kind: 'keep' })}>
-              Keep the TV's picture
+              Оставить картинку с TV
             </button>
           )}
         </div>
@@ -519,13 +522,13 @@ function BackdropTab(props: {
         {err && <div className="notice error" style={{ marginTop: 8 }}>{err}</div>}
       </div>
 
-      <Slider label="Darken the wallpaper" hint="A black layer over the picture, so text stays readable." value={val(cfg, 'wallpaper_dim')} min={0} max={90} unit="%" onChange={(v) => set('wallpaper_dim', v)} />
+      <Slider label="Затемнить обои" hint="Чёрный слой поверх картинки, чтобы текст оставался читаемым." value={val(cfg, 'wallpaper_dim')} min={0} max={90} unit="%" onChange={(v) => set('wallpaper_dim', v)} />
 
       <div>
-        <h3>Rotating wallpapers</h3>
+        <h3>Сменяющиеся обои</h3>
         <p className="muted small">
-          Add several pictures and the launcher picks a new one at random every few minutes, only while Home is on screen. They
-          replace the set already on the TV.
+          Добавьте несколько картинок — лаунчер будет случайно выбирать новую каждые несколько минут, только пока Home на
+          экране. Они заменят набор, уже сохранённый на TV.
         </p>
         {rotationNames.length > 0 && (
           <div className="thumbs" style={{ marginBottom: 10 }}>
@@ -537,7 +540,7 @@ function BackdropTab(props: {
                     <button
                       className="btn small"
                       style={{ padding: '0 6px' }}
-                      aria-label={`Remove ${img.name}`}
+                      aria-label={`Удалить ${img.name}`}
                       onClick={() => props.rotation.kind === 'set' && props.setRotation({ kind: 'set', images: props.rotation.images.filter((_, j) => j !== i) })}
                     >
                       ✕
@@ -554,39 +557,39 @@ function BackdropTab(props: {
         <div className="row">
           <input ref={many} type="file" accept="image/*" multiple hidden onChange={(e) => pickMany(e.target.files).then(() => (e.target.value = ''))} />
           <button className="btn small" onClick={() => many.current?.click()} disabled={!!working}>
-            Add pictures
+            Добавить картинки
           </button>
           {rotationNames.length > 0 && (
             <button className="btn small ghost" onClick={() => props.setRotation({ kind: 'set', images: [] })}>
-              Remove all
+              Удалить все
             </button>
           )}
         </div>
         <label className="field" style={{ marginTop: 12, maxWidth: 260 }}>
-          Change picture every
+          Менять картинку каждые
           <select value={rotationMinutes} onChange={(e) => set('wallpaper_rotation_minutes', Number(e.target.value))}>
             {[...new Set([0, 5, 15, 30, 60, 120, 360, 720, 1440, rotationMinutes])]
               .sort((a, b) => a - b)
               .map((m) => (
                 <option key={m} value={m}>
-                  {m === 0 ? 'Never (single wallpaper)' : m < 60 ? `${m} minutes` : m === 60 ? '1 hour' : `${m / 60} hours`}
+                  {m === 0 ? 'Никогда (одни обои)' : m < 60 ? `${m} минут` : m === 60 ? '1 час' : `${m / 60} часов`}
                 </option>
               ))}
           </select>
         </label>
 
         <div style={{ marginTop: 16 }}>
-          <h4 style={{ marginBottom: 4 }}>Get pictures</h4>
+          <h4 style={{ marginBottom: 4 }}>Получить картинки</h4>
           <p className="muted small">
-            Fetched on this computer, resized for the TV and added to the rotation above. Nothing is fetched on the TV and
-            no keys are sent to it.
+            Загружаются на этом компьютере, подгоняются под TV и добавляются в набор выше. На TV ничего не загружается, и
+            ключи на него не отправляются.
           </p>
           <div className="row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
             <button className="btn small" onClick={() => addBing()} disabled={!!working}>
-              Bing picture of the day
+              Картинка дня Bing
             </button>
             <button className="btn small" onClick={() => addTmdb()} disabled={!!working}>
-              TMDB backdrops
+              Кадры TMDB
             </button>
           </div>
           <div className="row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
@@ -594,7 +597,7 @@ function BackdropTab(props: {
               type="password"
               value={tmdbKey}
               onChange={(e) => setTmdbKey(e.target.value)}
-              placeholder="TMDB API key (v3)"
+              placeholder="Ключ TMDB API (v3)"
               style={{ width: 220 }}
               autoComplete="off"
             />
@@ -602,21 +605,21 @@ function BackdropTab(props: {
               type="text"
               value={tmdbList}
               onChange={(e) => setTmdbList(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="List number, e.g. 28"
+              placeholder="Номер списка, напр. 28"
               style={{ width: 150 }}
               inputMode="numeric"
             />
           </div>
           <p className="muted small" style={{ marginTop: 6 }}>
-            The key stays in this window and is never saved or sent to the TV. Create a free key at themoviedb.org; the
-            list number is the digits at the end of a themoviedb.org/list/… address.
+            Ключ остаётся в этом окне и никогда не сохраняется и не отправляется на TV. Бесплатный ключ можно создать на
+            themoviedb.org; номер списка — цифры в конце адреса themoviedb.org/list/….
           </p>
         </div>
       </div>
 
       <Slider
-        label="Time-of-day sky"
-        hint="A dark gradient that follows the clock: night blues, a soft blue day, a warm evening. Around 60 reads well over a wallpaper. 0 turns it off."
+        label="Небо по времени суток"
+        hint="Тёмный градиент, следующий за часами: ночная синева, мягкий голубой день, тёплый вечер. Около 60 хорошо смотрится поверх обоев. 0 отключает."
         value={val(cfg, 'sky_intensity')}
         min={0}
         max={100}
@@ -631,21 +634,21 @@ function GreetingTab({ cfg, set }: { cfg: LauncherConfig; set: SetFn }): ReactNo
   return (
     <div className="stack" style={{ gap: 18 }}>
       <label className="field">
-        Name after the greeting
-        <span className="hint">“Mum” shows GOOD MORNING, MUM. Leave empty for the greeting alone.</span>
-        <input type="text" value={val(cfg, 'greeting_name')} onChange={(e) => set('greeting_name', e.target.value || undefined)} placeholder="Mum" />
+        Имя после приветствия
+        <span className="hint">«Мама» покажет ДОБРОЕ УТРО, МАМА. Оставьте пустым, чтобы было только приветствие.</span>
+        <input type="text" value={val(cfg, 'greeting_name')} onChange={(e) => set('greeting_name', e.target.value || undefined)} placeholder="Мама" />
       </label>
-      <Toggle label="Solar Hijri date" hint="Shows the Shamsi date used in Iran and Afghanistan above the usual date." checked={val(cfg, 'shamsi_date')} onChange={(v) => set('shamsi_date', v)} />
+      <Toggle label="Иранская дата (Shamsi)" hint="Показывает дату по календарю Solar Hijri, принятому в Иране и Афганистане, над обычной датой." checked={val(cfg, 'shamsi_date')} onChange={(v) => set('shamsi_date', v)} />
 
       <div className="card" style={{ marginBottom: 0 }}>
-        <h3>Festive skin</h3>
+        <h3>Праздничное оформление</h3>
         <p className="muted small">
-          The network pill becomes a diya, Inputs a temple bell, Settings a marigold, and the first Home of the day gets a petal
-          shower. It switches itself off after the last day.
+          Значок сети станет дийей, «Входы» — храмовым колоколом, «Настройки» — бархатцем, а первый запуск Home за день
+          встретит лепестками. После последнего дня оформление отключится само.
         </p>
         <div className="row" style={{ alignItems: 'flex-end' }}>
           <label className="field">
-            Festival
+            Праздник
             <select
               value={festival}
               onChange={(e) => {
@@ -658,19 +661,19 @@ function GreetingTab({ cfg, set }: { cfg: LauncherConfig; set: SetFn }): ReactNo
                 } else set('festival', v)
               }}
             >
-              <option value="">None</option>
-              <option value="diwali">Diwali</option>
-              <option value="dussehra">Dussehra</option>
+              <option value="">Нет</option>
+              <option value="diwali">Дивали</option>
+              <option value="dussehra">Дуссехра</option>
             </select>
           </label>
           {festival && (
             <>
               <label className="field">
-                Last day
+                Последний день
                 <input type="date" value={cfg.festival_until ?? ''} onChange={(e) => set('festival_until', e.target.value || undefined)} />
               </label>
               <label className="field">
-                Glow colour
+                Цвет свечения
                 <input type="color" value={normHex(cfg.accent_color ?? '#FFB23C')} onChange={(e) => set('accent_color', e.target.value.toUpperCase())} />
               </label>
             </>
@@ -678,9 +681,9 @@ function GreetingTab({ cfg, set }: { cfg: LauncherConfig; set: SetFn }): ReactNo
         </div>
         {festival && (
           <label className="field" style={{ marginTop: 12 }}>
-            Greeting while it's on
-            <span className="hint">Leave empty for the built-in one.</span>
-            <input type="text" value={cfg.greeting ?? ''} onChange={(e) => set('greeting', e.target.value || undefined)} placeholder="Happy Diwali" />
+            Приветствие на время праздника
+            <span className="hint">Оставьте пустым для встроенного.</span>
+            <input type="text" value={cfg.greeting ?? ''} onChange={(e) => set('greeting', e.target.value || undefined)} placeholder="С Дивали!" />
           </label>
         )}
       </div>
@@ -691,16 +694,16 @@ function GreetingTab({ cfg, set }: { cfg: LauncherConfig; set: SetFn }): ReactNo
 function MotionTab({ cfg, set }: { cfg: LauncherConfig; set: SetFn }): ReactNode {
   return (
     <div>
-      <Toggle label="Animations" hint="Focus, glass highlight, title and tile entrance motion." checked={val(cfg, 'animations')} onChange={(v) => set('animations', v)} />
-      <Toggle label="Advanced effects" hint="Tile lift, icon zoom, smooth glow colour and app opening effects. Uses more memory." checked={val(cfg, 'advanced_effects')} onChange={(v) => set('advanced_effects', v)} />
+      <Toggle label="Анимации" hint="Фокус, стеклянный блик, появление заголовка и плиток." checked={val(cfg, 'animations')} onChange={(v) => set('animations', v)} />
+      <Toggle label="Продвинутые эффекты" hint="Подъём плитки, увеличение иконки, плавная смена цвета свечения и эффекты открытия приложений. Больше памяти." checked={val(cfg, 'advanced_effects')} onChange={(v) => set('advanced_effects', v)} />
       <Toggle
-        label="Reduced motion"
-        hint="For TVs whose graphics can't keep up: a stiff highlight, no overshoot, short fades. A MediaTek MT5895 on Android 10 is the known case."
+        label="Уменьшенная анимация"
+        hint="Для TV, графика которых не успевает: резкая подсветка, без перелётов, короткие затухания. Известный случай — MediaTek MT5895 на Android 10."
         checked={val(cfg, 'reduced_motion')}
         onChange={(v) => set('reduced_motion', v)}
       />
       <p className="muted small" style={{ marginTop: 10 }}>
-        System-wide animation speed is in TV extras.
+        Скорость системных анимаций — в разделе «Дополнительно».
       </p>
     </div>
   )
@@ -720,22 +723,22 @@ function AdvancedTab({ apps, cfg, set }: { apps: TvApp[]; cfg: LauncherConfig; s
     <div className="stack" style={{ gap: 18 }}>
       <div className="row" style={{ alignItems: 'flex-end' }}>
         <label className="field" style={{ flex: 1 }}>
-          Live TV app
-          <span className="hint">Offered at the end of the Inputs menu.</span>
+          Приложение Live TV
+          <span className="hint">Показывается в конце меню «Входы».</span>
           <AppSelect apps={sorted} value={val(cfg, 'live_tv_package')} onChange={(v) => set('live_tv_package', v)} allowCustom />
         </label>
         <label className="field" style={{ flex: 1 }}>
-          VPN app
-          <span className="hint">The network pill opens it, and a “VPN off” badge shows while no VPN is up.</span>
+          VPN-приложение
+          <span className="hint">Его открывает значок сети; пока VPN не подключён, показывается метка «VPN выкл.».</span>
           <AppSelect apps={sorted} value={val(cfg, 'vpn_app')} onChange={(v) => set('vpn_app', v)} />
         </label>
       </div>
 
       <div>
-        <h3>Remote buttons that open an app</h3>
+        <h3>Кнопки пульта, открывающие приложение</h3>
         <p className="muted small">
-          For buttons only the stock launcher answered, like the YouTube button on Google TV (190). Needs the Input or Home
-          button service from the Launcher step.
+          Для кнопок, на которые реагировал только штатный лаунчер, например кнопка YouTube на Google TV (190). Нужна
+          служба кнопок Input или Home из шага «Лаунчер».
         </p>
         {rows.map((r, i) => (
           <div key={i} className="kv-row">
@@ -743,44 +746,44 @@ function AdvancedTab({ apps, cfg, set }: { apps: TvApp[]; cfg: LauncherConfig; s
               type="text"
               value={r.code}
               placeholder="190"
-              aria-label="Keycode"
+              aria-label="Код кнопки"
               onChange={(e) => writeKeys(rows.map((x, j) => (j === i ? { ...x, code: e.target.value.trim() } : x)))}
             />
             <AppSelect apps={sorted} value={r.pkg} onChange={(v) => writeKeys(rows.map((x, j) => (j === i ? { ...x, pkg: v } : x)))} />
-            <button className="icon-btn" aria-label="Remove" onClick={() => writeKeys(rows.filter((_, j) => j !== i))}>
+            <button className="icon-btn" aria-label="Удалить" onClick={() => writeKeys(rows.filter((_, j) => j !== i))}>
               ✕
             </button>
           </div>
         ))}
         <div className="row">
           <button className="btn small" onClick={() => writeKeys([...rows, { code: '190', pkg: 'com.google.android.youtube.tv' }])}>
-            Add a button
+            Добавить кнопку
           </button>
-          <span className="small muted">Keycode as a number, or a name like KEYCODE_BUTTON_3.</span>
+          <span className="small muted">Код кнопки числом или именем, например KEYCODE_BUTTON_3.</span>
         </div>
       </div>
 
       <NumberList
-        label="Buttons that open Settings"
-        hint="Keycodes for the Home button service. TCL Google TV gear button: 83."
+        label="Кнопки, открывающие Настройки"
+        hint="Коды для службы кнопки Home. Кнопка-шестерёнка на TCL Google TV: 83."
         value={cfg.settings_key_keycodes}
         onChange={(v) => set('settings_key_keycodes', v)}
       />
       <Toggle
-        label="Settings button opens a quick panel"
-        hint="A small panel with TV settings, Display, Network, Apps and Launcher settings, over whatever is on screen."
+        label="Кнопка Settings открывает быструю панель"
+        hint="Небольшая панель с настройками TV, экрана, сети, приложений и лаунчера поверх текущего экрана."
         checked={val(cfg, 'settings_key_panel')}
         onChange={(v) => set('settings_key_panel', v)}
       />
       <NumberList
-        label="More buttons that open the input switcher"
-        hint="Keycodes for the Input button service. KEYCODE_TV always does. Xiaomi PatchWall button: 192."
+        label="Дополнительные кнопки для переключателя входов"
+        hint="Коды для службы кнопки Input. KEYCODE_TV работает всегда. Кнопка Xiaomi PatchWall: 192."
         value={cfg.input_key_keycodes}
         onChange={(v) => set('input_key_keycodes', v)}
       />
       <Toggle
-        label="Module cards"
-        hint="Apps that offer their own tile ask you once each. Off: the launcher never looks or asks."
+        label="Карточки модулей"
+        hint="Приложения, предлагающие свою плитку, спрашивают по одному разу. Выкл.: лаунчер не ищет и не спрашивает."
         checked={val(cfg, 'module_cards')}
         onChange={(v) => set('module_cards', v)}
       />
@@ -792,8 +795,8 @@ function AppSelect(props: { apps: TvApp[]; value: string; onChange: (v: string) 
   const known = props.apps.some((a) => a.pkg === props.value)
   return (
     <select value={props.value} onChange={(e) => props.onChange(e.target.value)}>
-      <option value="">None</option>
-      {!known && props.value && <option value={props.value}>{props.value} (not installed)</option>}
+      <option value="">Нет</option>
+      {!known && props.value && <option value={props.value}>{props.value} (не установлено)</option>}
       {props.apps.map((a) => (
         <option key={a.pkg} value={a.pkg}>
           {a.label}

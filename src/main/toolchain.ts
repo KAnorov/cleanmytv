@@ -74,11 +74,11 @@ export function run(task: string, cmd: string, args: string[], opts: { cwd?: str
 
 async function download(tool: ToolId, url: string, file: string): Promise<void> {
   mkdirSync(join(file, '..'), { recursive: true })
-  log('download', 'cmd', `download ${url}`)
+  log('download', 'cmd', `скачивание ${url}`)
   const res = await fetch(url, { redirect: 'follow' })
   // Redirects are followed (Adoptium and GitHub use them), but never down to plain HTTP.
-  if (!res.url.startsWith('https://')) throw new Error(`refusing a download that was redirected away from HTTPS (${res.url})`)
-  if (!res.ok || !res.body) throw new Error(`download failed: ${res.status} ${res.statusText} (${url})`)
+  if (!res.url.startsWith('https://')) throw new Error(`отказываемся скачивать: перенаправление ушло с HTTPS (${res.url})`)
+  if (!res.ok || !res.body) throw new Error(`не удалось скачать: ${res.status} ${res.statusText} (${url})`)
   const total = Number(res.headers.get('content-length')) || 0
   let received = 0
   let last = 0
@@ -103,7 +103,7 @@ async function extract(tool: ToolId, archive: string, into: string): Promise<voi
   const r = process.platform === 'linux' && archive.endsWith('.zip')
     ? await run('download', 'unzip', ['-q', '-o', archive, '-d', into], { quiet: true })
     : await run('download', tar, ['-xf', archive, '-C', into], { quiet: true })
-  if (r.code !== 0) throw new Error(`could not unpack ${archive}: ${r.out.trim()}`)
+  if (r.code !== 0) throw new Error(`не удалось распаковать ${archive}: ${r.out.trim()}`)
   rmSync(archive, { force: true })
 }
 
@@ -120,22 +120,22 @@ async function getJdk(): Promise<void> {
   const archive = join(paths.tools, `jdk.${win ? 'zip' : 'tar.gz'}`)
   await download('jdk', `https://api.adoptium.net/v3/binary/latest/17/ga/${adoptOs}/${arch}/jdk/hotspot/normal/eclipse`, archive)
   await extract('jdk', archive, dirs.jdk)
-  if (!javaHome()) throw new Error('the JDK download did not contain bin/java')
+  if (!javaHome()) throw new Error('в скачанном JDK нет bin/java')
 }
 
 async function getSdk(): Promise<void> {
   const home = javaHome()
-  if (!home) throw new Error('Download the JDK first: the Android SDK manager runs on Java.')
+  if (!home) throw new Error('Сначала скачайте JDK: менеджер Android SDK работает на Java.')
   const { googleOs } = osArch()
   const tools = join(dirs.sdk, 'cmdline-tools')
   const sdkmanager = join(tools, 'latest', 'bin', win ? 'sdkmanager.bat' : 'sdkmanager')
   if (!existsSync(sdkmanager)) {
     // The archive name carries a build number, so read the current one from Google's repository index.
     const index = await fetch('https://dl.google.com/android/repository/repository2-3.xml')
-    if (!index.ok || !index.url.startsWith('https://')) throw new Error(`could not read Google's SDK index (${index.status})`)
+    if (!index.ok || !index.url.startsWith('https://')) throw new Error(`не удалось прочитать индекс SDK Google (${index.status})`)
     const xml = await index.text()
     const names = [...xml.matchAll(new RegExp(`commandlinetools-${googleOs}-(\\d+)_latest\\.zip`, 'g'))]
-    if (!names.length) throw new Error("could not find the Android command-line tools in Google's index")
+    if (!names.length) throw new Error('не удалось найти инструменты командной строки Android в индексе Google')
     const best = names.sort((a, b) => Number(b[1]) - Number(a[1]))[0][0]
     const archive = join(paths.tools, best)
     await download('sdk', `https://dl.google.com/android/repository/${best}`, archive)
@@ -148,12 +148,12 @@ async function getSdk(): Promise<void> {
     rmSync(tmp, { recursive: true, force: true })
     if (!win) chmodSync(sdkmanager, 0o755)
   }
-  progress({ tool: 'sdk', received: 0, total: 0, phase: 'install', message: 'Installing Android platform 34 and build tools' })
+  progress({ tool: 'sdk', received: 0, total: 0, phase: 'install', message: 'Устанавливаем Android platform 34 и build-tools' })
   const env = { JAVA_HOME: home }
   const sdkRoot = `--sdk_root=${dirs.sdk}`
   await run('download', sdkmanager, ['--licenses', sdkRoot], { env, input: 'y\n'.repeat(20), quiet: true })
   const r = await run('download', sdkmanager, ['--install', 'platforms;android-34', 'build-tools;34.0.0', sdkRoot], { env, input: 'y\n'.repeat(5) })
-  if (r.code !== 0 || !sdkReady()) throw new Error('the Android SDK manager did not finish; see the log.')
+  if (r.code !== 0 || !sdkReady()) throw new Error('менеджер Android SDK не завершил работу; смотрите лог.')
 }
 
 /**
@@ -165,7 +165,7 @@ export function treeHash(root: string, subdirs: string[]): string {
   const walk = (rel: string): void => {
     const abs = join(root, rel)
     const st = lstatSync(abs)
-    if (st.isSymbolicLink()) throw new Error(`symlink in pinned tree: ${rel}`)
+    if (st.isSymbolicLink()) throw new Error(`символическая ссылка в закреплённом дереве: ${rel}`)
     if (st.isDirectory()) { for (const n of readdirSync(abs).sort()) walk(rel ? `${rel}/${n}` : n); return }
     if (st.isFile()) lines.push(`${rel}\0${createHash('sha256').update(readFileSync(abs)).digest('hex')}\n`)
   }
@@ -185,11 +185,11 @@ async function getSource(): Promise<void> {
   rmSync(tmp, { recursive: true, force: true })
   await extract('source', archive, tmp)
   const top = readdirSync(tmp).find((n) => n.startsWith('cleanyourtv'))
-  if (!top) throw new Error('the source download is not the cleanyourtv repository')
+  if (!top) throw new Error('скачанный архив — не репозиторий cleanyourtv')
   const got = treeHash(join(tmp, top), ['launcher'])
   if (got !== pin.launcherSha256) {
     rmSync(tmp, { recursive: true, force: true })
-    throw new Error(`the launcher source does not match the pinned commit ${pin.commit.slice(0, 7)} (content hash ${got.slice(0, 12)}…); nothing was built.`)
+    throw new Error(`исходники лаунчера не совпадают с закреплённым коммитом ${pin.commit.slice(0, 7)} (хеш содержимого ${got.slice(0, 12)}…); сборка не выполнялась.`)
   }
   writeFileSync(join(tmp, top, '.upstream-commit'), pin.commit + '\n')
   rmSync(dirs.source, { recursive: true, force: true })
@@ -208,19 +208,19 @@ async function getPlatformTools(): Promise<void> {
   rmSync(dirs.platformTools, { recursive: true, force: true })
   renameSync(join(tmp, 'platform-tools'), dirs.platformTools)
   rmSync(tmp, { recursive: true, force: true })
-  if (!platformToolsReady()) throw new Error('the platform-tools download did not contain adb')
+  if (!platformToolsReady()) throw new Error('в скачанных platform-tools нет adb')
 }
 
 export async function get(tool: ToolId): Promise<ApplyResult> {
   const getters: Record<ToolId, () => Promise<void>> = { jdk: getJdk, sdk: getSdk, source: getSource, 'platform-tools': getPlatformTools }
-  if (!Object.hasOwn(getters, tool)) return { ok: false, summary: `unknown download: ${String(tool)}`, warnings: [] }
+  if (!Object.hasOwn(getters, tool)) return { ok: false, summary: `неизвестная загрузка: ${String(tool)}`, warnings: [] }
   mkdirSync(paths.tools, { recursive: true })
   try {
     await getters[tool]()
     progress({ tool, received: 1, total: 1, phase: 'done' })
-    const what = { jdk: 'Java 17', sdk: 'Android SDK', source: 'Launcher source', 'platform-tools': 'Google platform-tools' }[tool]
-    log('download', 'ok', `${what} is ready.`)
-    return { ok: true, summary: `${what} is ready.`, warnings: [] }
+    const what = { jdk: 'Java 17', sdk: 'Android SDK', source: 'Исходники лаунчера', 'platform-tools': 'Google platform-tools' }[tool]
+    log('download', 'ok', `${what}: готово.`)
+    return { ok: true, summary: `${what}: готово.`, warnings: [] }
   } catch (e) {
     const message = (e as Error).message
     progress({ tool, received: 0, total: 0, phase: 'error', message })
@@ -254,7 +254,7 @@ export async function buildApk(opts: { sourceDir: string; sdkDir: string; javaHo
     env: { JAVA_HOME: opts.javaHome, ANDROID_HOME: opts.sdkDir, ...(opts.gradleHome ? { GRADLE_USER_HOME: opts.gradleHome } : {}) }
   })
   const apk = join(launcher, 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk')
-  if (r.code !== 0 || !existsSync(apk)) throw new Error('Gradle build failed; see the log.')
+  if (r.code !== 0 || !existsSync(apk)) throw new Error('сборка Gradle не удалась; смотрите лог.')
   mkdirSync(join(opts.outFile, '..'), { recursive: true })
   copyFileSync(apk, opts.outFile)
   const gradle = readFileSync(join(launcher, 'app', 'build.gradle'), 'utf8')
@@ -267,12 +267,12 @@ export async function buildApk(opts: { sourceDir: string; sdkDir: string; javaHo
 
 export async function buildLocal(): Promise<ApplyResult> {
   const home = javaHome()
-  const missing = [!home && 'Java 17', !sdkReady() && 'Android SDK', !sourceReady() && 'launcher source'].filter(Boolean)
-  if (missing.length) return { ok: false, summary: `Download first: ${missing.join(', ')}.`, warnings: [] }
+  const missing = [!home && 'Java 17', !sdkReady() && 'Android SDK', !sourceReady() && 'исходники лаунчера'].filter(Boolean)
+  if (missing.length) return { ok: false, summary: `Сначала скачайте: ${missing.join(', ')}.`, warnings: [] }
   try {
     const version = await buildApk({ sourceDir: dirs.source, sdkDir: dirs.sdk, javaHome: home!, keystore: paths.keystore, outFile: paths.localApk, gradleHome: dirs.gradleHome })
-    log('build', 'ok', `Built launcher ${version}.`)
-    return { ok: true, summary: `Built launcher ${version} from source. Choose "Local build" to install it.`, warnings: [] }
+    log('build', 'ok', `Собран лаунчер ${version}.`)
+    return { ok: true, summary: `Лаунчер ${version} собран из исходников. Выберите «Собрано на этом компьютере», чтобы установить.`, warnings: [] }
   } catch (e) {
     return { ok: false, summary: (e as Error).message, warnings: [] }
   }
@@ -287,7 +287,7 @@ export async function buildLocal(): Promise<ApplyResult> {
 export async function pair(host: string, pairPort: number, code: string, connectPort: number): Promise<ApplyResult> {
   const port = (p: unknown): boolean => Number.isInteger(p) && (p as number) >= 1 && (p as number) <= 65535
   if (!/^[A-Za-z0-9.-]+$/.test(host) || !/^\d{6}$/.test(code) || !port(pairPort) || !port(connectPort)) {
-    return { ok: false, summary: 'Enter the IP address, both ports and the 6-digit code shown on the TV.', warnings: [] }
+    return { ok: false, summary: 'Введите IP-адрес, оба порта и 6-значный код, показанные на TV.', warnings: [] }
   }
   if (!platformToolsReady()) {
     const got = await get('platform-tools')
@@ -300,14 +300,14 @@ export async function pair(host: string, pairPort: number, code: string, connect
   if (!/Successfully paired/i.test(p.out) && /pairing code/i.test(p.out)) {
     p = await run('pair', adb, ['pair', `${host}:${pairPort}`, code], { redact: [code] })
   }
-  if (!/Successfully paired/i.test(p.out)) return { ok: false, summary: 'Pairing failed. Check the pairing port and code, which change each time the dialog opens.', warnings: [p.out.trim()] }
+  if (!/Successfully paired/i.test(p.out)) return { ok: false, summary: 'Сопряжение не удалось. Проверьте порт сопряжения и код: они меняются каждый раз при открытии диалога.', warnings: [p.out.trim()] }
   const target = `${host}:${connectPort}`
   const c = await run('pair', adb, ['connect', target])
-  if (!/connected to/i.test(c.out)) return { ok: false, summary: `Paired, but could not connect to ${target}. Use the port shown under Wireless debugging (not the pairing port).`, warnings: [c.out.trim()] }
+  if (!/connected to/i.test(c.out)) return { ok: false, summary: `Сопряжение прошло, но подключиться к ${target} не удалось. Используйте порт, показанный в разделе «Отладка по Wi-Fi», а не порт сопряжения.`, warnings: [c.out.trim()] }
   const t = await run('pair', adb, ['-s', target, 'tcpip', '5555'])
   await new Promise((r) => setTimeout(r, 3000))
   await run('pair', adb, ['disconnect'], { quiet: true })
   await run('pair', adb, ['kill-server'], { quiet: true })
-  if (!/restarting|5555/i.test(t.out)) return { ok: false, summary: 'Connected, but the TV did not open port 5555.', warnings: [t.out.trim()] }
-  return { ok: true, summary: 'Port 5555 is open until the TV reboots. Connecting now.', warnings: [] }
+  if (!/restarting|5555/i.test(t.out)) return { ok: false, summary: 'Подключение есть, но TV не открыл порт 5555.', warnings: [t.out.trim()] }
+  return { ok: true, summary: 'Порт 5555 открыт до перезагрузки TV. Подключаемся.', warnings: [] }
 }

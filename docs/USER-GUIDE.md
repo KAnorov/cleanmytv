@@ -1,135 +1,192 @@
-# CleanMyTV user guide
+# Руководство пользователя CleanMyTV
 
-A step-by-step guide for TV owners. Written against **v0.1** — screens change, the ideas don't. Every screenshot in the README is labelled with the version it was taken from; expect this guide's pictures to be added the same way as the app settles.
+Пошаговое руководство для владельцев TV. Написано для **v0.1** — экраны меняются, идеи остаются. Все
+скриншоты в README подписаны версией; картинки в этом руководстве будут добавляться по мере того, как
+приложение стабилизируется.
 
-If you are comfortable with ADB, package names and rollback semantics, the [README](../README.md) is the short version. This guide is for everyone else: it walks each step at TV-owner pace, says what you will see, and has a "if it didn't work" box for the common failures.
-
----
-
-## 1. Before you start: what this app does (and does not do)
-
-**In one sentence:** it turns off the apps on your Android TV that you don't want, puts a clean, calm home screen in their place, and can put everything back the way it was.
-
-Three promises worth knowing before anything else:
-
-- **Nothing is uninstalled.** Apps are switched off *for your user* (`pm disable-user`), not removed from the TV. They take no space on screen, and they come back with one click of **Restore**.
-- **It only talks to your TV.** The app connects over your home Wi-Fi to the TV's debugging port (5555). No account, no cloud, no telemetry.
-- **There is always a way back.** Before the first cleanup the app writes a restore record — which packages were on, which launcher Home pointed at — and Restore replays it exactly. [Chapter 7](#7-safety-and-rollback) covers this in full.
+Если вы уверенно работаете с ADB, именами пакетов и откатом, короткая версия — в [README](../README.md).
+Это руководство для всех остальных: каждый шаг в темпе владельца TV, что вы увидите и блок «если не
+получилось» для частых проблем.
 
 ---
 
-## 2. Prepare the TV (5 minutes, one-time)
+## 1. Перед началом: что приложение делает (и чего не делает)
 
-You need to switch on the TV's developer options, the same ones phone apps use. Nothing you do here can break the TV; the switch can be turned off again at any time.
+**Одной фразой:** оно отключает приложения на вашем Android TV, которые вам не нужны, ставит на их место
+чистый спокойный главный экран и может вернуть всё как было.
 
-1. On the TV remote: **Settings → Device Preferences → About** (on some Google TVs: **Settings → System → About**).
-2. Move down to **Build** (or **Android TV OS build**) and press OK on it **seven times**. After the third or so a small counter appears; at seven the TV says *You are now a developer* (or similar).
-3. Go back one screen → **Developer options** → turn on **USB debugging**. If your TV also lists **Network debugging** or **ADB debugging**, turn that on too — that is the one this app uses.
-4. Leave the TV on and awake. It must stay on the same Wi-Fi as your computer.
+Три обещания, которые стоит знать заранее:
 
-> **If it didn't work**
+- **Ничего не удаляется.** Приложения отключаются *для вашего пользователя* (`pm disable-user`), а не
+  удаляются с TV. Они не занимают место на экране и возвращаются одной кнопкой **«Восстановить»**.
+- **Приложение общается только с вашим TV.** Оно подключается по домашнему Wi-Fi к порту отладки TV
+  (5555). Никаких аккаунтов, облака и телеметрии.
+- **Путь назад есть всегда.** Перед первой очисткой приложение записывает состояние — какие пакеты были
+  включены, на какой лаунчер указывал Home. «Восстановить» повторяет его точно.
+  [Глава 7](#7-safety-and-rollback) рассказывает об этом подробно.
+
+---
+
+<a id="2-prepare-the-tv-5-minutes-one-time"></a>
+## 2. Подготовьте TV (5 минут, один раз)
+
+Нужно включить на TV параметры разработчика — те же, что используют приложения для телефонов. Сломать TV
+этим нельзя; выключатель можно в любой момент вернуть обратно.
+
+1. На пульте TV: **Настройки → Настройки устройства → О телевизоре** (на некоторых Google TV:
+   **Настройки → Система → О телевизоре**).
+2. Перейдите к **Сборке** (или **Сборке Android TV OS**) и нажмите на ней OK **семь раз**. После
+   третьего раза появится счётчик; на седьмом TV сообщит, что вы стали разработчиком.
+3. Вернитесь на экран назад → **Для разработчиков** → включите **Отладку по USB**. Если на TV есть
+   также **Отладка по сети** или **Отладка ADB**, включите и её — именно её использует приложение.
+4. Оставьте TV включённым. Он должен быть в той же Wi-Fi сети, что и компьютер.
+
+> **Если не получилось**
 >
-> - *No Developer options in the menu.* Some TVs hide it under a different Settings layout — look for **System → Advanced**. A few budget models need the TV signed into a Google account first.
-> - *The counter never appears.* You are pressing a different row — it must be the **Build number** itself, not the Android version above it.
+> - *В меню нет «Для разработчиков».* Некоторые TV прячут его в другом разделе настроек — ищите
+>   **Система → Дополнительно**. Некоторым бюджетным моделям нужно сначала войти в аккаунт Google.
+> - *Счётчик не появляется.* Вы нажимаете не на ту строку — нужен именно **Номер сборки**, а не версия
+>   Android над ним.
 
 ---
 
-## 3. Connect (the Allow prompt)
+## 3. Подключение (запрос «Разрешить»)
 
-1. Open CleanMyTV on your computer. The **Setup** step checks the network and lists TVs it can see.
-2. Pick your TV. The app connects and the TV shows an **Allow USB debugging?** prompt with your computer's identity on it.
-3. On the TV, choose **Allow**, and tick **Always allow from this computer** to skip the question next time.
+1. Откройте CleanMyTV на компьютере. Шаг **«Подключение»** проверяет сеть и показывает TV, которые видит.
+2. Выберите свой TV. Приложение подключается, и TV показывает запрос **«Разрешить отладку по USB?»** с
+   именем компьютера.
+3. На TV выберите **«Разрешить»** и поставьте галочку **«Всегда разрешать с этого компьютера»**, чтобы
+   больше не подтверждать.
 
-Google TVs that only offer *Wireless debugging* get a pairing form instead — the app walks you through the TV's Wireless-debugging screen and the six-digit code it shows.
+Для Google TV, которые предлагают только *отладку по Wi-Fi*, появится форма сопряжения — приложение
+подскажет, что открыть на TV и куда ввести шестизначный код.
 
-> **If it didn't work**
+> **Если не получилось**
 >
-> - *The TV isn't listed.* The TV and the computer must be on the same Wi-Fi — and on the *same band* if your router splits 2.4 GHz and 5 GHz into separate network names. Guest Wi-Fi often blocks TV-to-computer traffic ("client isolation"); use the main network.
-> - *The Allow prompt never appears.* The TV usually shows it within a few seconds. If not, a previous connection attempt may be stuck: on the TV, Developer options → **Revoke USB debugging authorisations**, then connect again.
-> - *It connected yesterday but not today.* The TV's Wi-Fi address changed. Go back to Setup and let it scan again — this is normal after a router restart.
+> - *TV нет в списке.* TV и компьютер должны быть в одной Wi-Fi сети — и на *одной полосе*, если роутер
+>   разделяет 2.4 и 5 ГГц на разные имена сетей. Гостевой Wi-Fi часто блокирует трафик между
+>   устройствами («изоляция клиентов»); используйте основную сеть.
+> - *Запрос «Разрешить» не появляется.* Обычно TV показывает его через несколько секунд. Если нет,
+>   предыдущая попытка могла зависнуть: на TV откройте «Для разработчиков» → **«Отозвать разрешения
+>   на отладку по USB»** и подключитесь снова.
+> - *Вчера подключалось, сегодня нет.* У TV изменился адрес Wi-Fi. Вернитесь в «Подключение» и
+>   запустите сканирование снова — после перезагрузки роутера это нормально.
 
 ---
 
-## 4. Clean up (choose what goes away)
+## 4. Очистка (выберите, что убрать)
 
-You will see a list of apps that other TVs like yours disable, each showing its **live state on your TV right now**. Ticked means "switch this off"; unticked stays untouched.
+Вы увидите список приложений, которые отключают на похожих TV, с их **текущим состоянием на вашем TV**.
+Галочка означает «отключить»; без галочки приложение остаётся как есть.
 
-- The app picks the list that matches your TV's model. If your TV isn't in the list, it shows the packages other TVs disable — start conservative.
-- **Start with the obvious ad and recommendation apps.** Anything whose name contains *recommend*, *ads*, *live* or a store you never use is a safe first pass. The system apps the TV needs to function are not in the list.
-- Press the cleanup button. Each row updates as it goes. Anything that fails is left on and clearly marked — nothing is half-done behind your back.
+- Приложение подбирает список под модель вашего TV. Если модели нет в списке, оно показывает пакеты,
+  которые отключают на других TV — начните осторожно.
+- **Сначала отключите очевидную рекламу и рекомендации.** Всё, в имени чего есть *recommend*, *ads*,
+  *live* или магазин, которым вы не пользуетесь, — безопасная первая партия. Системных приложений,
+  нужных TV для работы, в списке нет.
+- Нажмите кнопку очистки. Строки обновляются по ходу. Всё, что не удалось, останется включённым и будет
+  явно отмечено — ничего не делается наполовину втихую.
 
-> **If it didn't work**
+> **Если не получилось**
 >
-> - *A row says "failed".* The app leaves that one on and continues with the rest. Some apps refuse to be disabled on certain firmwares; skip them — the rest of the cleanup still counts.
-> - *The TV feels slower, or something you use vanished.* Open the same screen later and untick nothing — the screen also lists how to re-enable one app at a time. Or use full **Restore** ([chapter 7](#7-safety-and-rollback)).
+> - *В строке написано «ошибка».* Приложение оставляет этот пакет включённым и продолжает с остальными.
+>   Некоторые приложения отказываются отключаться на отдельных прошивках; пропустите их — остальная
+>   очистка всё равно работает.
+> - *TV стал медленнее или пропало нужное приложение.* Откройте тот же экран позже и снимите галочку —
+>   там же видно, как включить приложение обратно. Или используйте полное **«Восстановить»**
+>   ([глава 7](#7-safety-and-rollback)).
 
 ---
 
-## 5. Launcher (the new home screen)
+## 5. Лаунчер (новый главный экран)
 
-This step installs the clean launcher and points the TV's **Home** button at it.
+Этот шаг устанавливает чистый лаунчер и переключает на него кнопку **Home**.
 
-1. Press install. The app pushes the launcher to the TV and hands Home over.
-2. Press Home on the TV remote once. You should land on the new, mostly empty home screen.
-3. Optionally enable the **Input-key** and **Home-key** helpers — they make the remote's dedicated buttons open the launcher's panels instead of the old launcher's.
+1. Нажмите «Установить». Приложение загружает лаунчер на TV и передаёт ему Home.
+2. Нажмите Home на пульте TV. Вы должны попасть на новый, почти пустой главный экран.
+3. По желанию включите службы **Input** и **Home** — они заставят отдельные кнопки пульта открывать
+   панели нового лаунчера вместо старого.
 
-> **If it didn't work**
+> **Если не получилось**
 >
-> - *Home still opens the old screen.* Press Home a second time — some TVs show a "use which app?" chooser the first time; pick the new launcher and **Always**. If it still lands wrong, the step's rollback runs automatically and tells you; nothing is left half-switched.
-> - *I want the old home back.* See [chapter 7](#7-safety-and-rollback) — one toggle, no reinstall.
+> - *Home по-прежнему открывает старый экран.* Нажмите Home второй раз — некоторые TV в первый раз
+>   показывают выбор «каким приложением открыть?»; выберите новый лаунчер и **«Всегда»**. Если Home всё
+>   равно открывает не то, шаг автоматически откатится и сообщит об этом; ничего не останется
+>   переключённым наполовину.
+> - *Хочу вернуть старый главный экран.* См. [главу 7](#7-safety-and-rollback) — один переключатель,
+>   переустановка не нужна.
 
 ---
 
-## 6. Customise and finish
+## 6. Настройка и завершение
 
-- **Customise** — drag your apps into order (the first row becomes the dock), hide the ones you never open, set columns and rows, add a wallpaper (a single picture or a rotating set, including one-click sources like the Bing picture of the day), dim the background, change the greeting, pick a festival skin.
-- **TV extras** — a clock screensaver, ad-blocking Private DNS, animation speed, the launcher's language, an on-screen remote, reboot.
-- **Finish** — the guide walks you through switching debugging back **off**, then checks that port 5555 is closed. Do this: an open debugging port is a plain-text shell anyone on the Wi-Fi could use, and some TVs don't ask permission again once paired.
+- **Настройка** — перетащите приложения в нужном порядке (первый ряд становится доком), скройте те, что
+  не открываете, задайте число колонок и рядов, добавьте обои (одну картинку или набор со сменой,
+  включая источники в один клик вроде картинки дня Bing), затемните фон, измените приветствие, выберите
+  праздничное оформление.
+- **Дополнительно** — заставка с часами, Private DNS с блокировкой рекламы, скорость анимации, язык
+  лаунчера, экранный пульт, перезагрузка.
+- **Завершение** — руководство проведёт вас по выключению отладки и проверит, что порт 5555 закрыт.
+  Сделайте это: открытый порт отладки — это консоль без шифрования, которой может воспользоваться любой
+  в Wi-Fi сети, а некоторые TV больше не спрашивают разрешения после первого сопряжения.
 
-The app remembers where you were — close it any time and come back; a TV that already runs the clean launcher opens straight at Customise.
+Приложение помнит, где вы были, — его можно закрыть и вернуться. TV, на котором уже стоит чистый
+лаунчер, сразу открывается на «Настройке».
 
-> **If it didn't work**
+> **Если не получилось**
 >
-> - *The port check says still open.* Some TVs restart their debugging service when you toggle it — wait a few seconds and press check again. If it stays open, toggle Developer options itself off on the TV; the launcher and your cleanup are unaffected.
-> - *The TV got a new IP address.* Nothing is lost. Connect again from Setup; the app recognises the TV by its device identity, not its address, and keeps its restore record.
+> - *Проверка пишет, что порт всё ещё открыт.* Некоторые TV перезапускают службу отладки при
+>   переключении — подождите несколько секунд и нажмите проверку снова. Если порт остаётся открытым,
+>   выключите на TV сами «Для разработчиков»; на лаунчер и очистку это не влияет.
+> - *У TV новый IP-адрес.* Ничего не потеряно. Подключитесь снова в «Подключении»; приложение узнаёт TV
+>   по идентификатору устройства, а не по адресу, и сохраняет запись восстановления.
 
 ---
 
-## 7. Safety and rollback
+## 7. Безопасность и откат
 
-**Disabled vs uninstalled — the difference that matters.**
+<a id="7-safety-and-rollback"></a>
 
-| | Disabled (what this app does) | Uninstalled (what this app never does) |
+**Отключено или удалено — важная разница.**
+
+| | Отключено (что делает приложение) | Удалено (чего приложение не делает) |
 |---|---|---|
-| Where the app goes | Still on the TV, switched off for your user | Removed from storage |
-| Comes back? | Instantly — one toggle or Restore | Only by finding and reinstalling it |
-| TV system apps | Untouched | Would break things |
-| Storage freed | None | Some |
+| Где приложение | Остаётся на TV, выключено для вашего пользователя | Удалено из памяти |
+| Вернётся? | Мгновенно — один переключатель или «Восстановить» | Только если найти и установить заново |
+| Системные приложения TV | Не тронуты | Сломали бы работу |
+| Освобождает место | Нет | Немного |
 
-**Restore — the one-click undo.** Before the first cleanup the app writes a record on your computer: every package's on/off state, and which launcher Home pointed at. Restore replays that record exactly:
+**«Восстановить» — откат в один клик.** Перед первой очисткой приложение записывает на компьютер
+состояние каждого пакета и то, на какой лаунчер указывал Home. «Восстановить» повторяет запись точно:
 
-- every package you switched off comes back **on**, exactly as it was;
-- Home goes back to the launcher you had before — the stock one if you never changed it;
-- the record is tied to the TV's device identity, not its IP address, so a TV that moves or gets a new address keeps its history;
-- a record from a *different* TV is refused — Restore never applies one TV's list to another.
+- каждый отключённый пакет **включается** обратно, как было;
+- Home возвращается лаунчеру, который был до этого, — штатному, если вы его не меняли;
+- запись привязана к идентификатору устройства, а не к IP-адресу, поэтому TV, который переехал или
+  получил новый адрес, сохраняет свою историю;
+- запись от *другого* TV отклоняется — «Восстановить» никогда не применяет список одного TV к другому.
 
-**Getting the stock launcher back**, step by step: open CleanMyTV → connect → Restore. If you no longer have the app: on the TV, Settings → Apps → the stock launcher → **Enable** (it was disabled, not deleted). Re-enabling debugging works the same way: repeat [chapter 2](#2-prepare-the-tv-5-minutes-one-time) — the seven presses work whether the options are on or off.
+**Как вернуть штатный лаунчер**, по шагам: откройте CleanMyTV → подключитесь → «Восстановить». Если
+приложения больше нет: на TV откройте Настройки → Приложения → штатный лаунчер → **«Включить»** (его
+отключали, а не удаляли). Включение отладки работает так же: повторите
+[главу 2](#2-prepare-the-tv-5-minutes-one-time) — семь нажатий работают независимо от того, включены
+параметры или выключены.
 
 ---
 
-## 8. Troubleshooting quick table
+## 8. Быстрая таблица проблем
 
-| Symptom | First thing to try | Section |
+| Симптом | Что попробовать сначала | Раздел |
 |---|---|---|
-| TV not found | Same Wi-Fi, same band, not guest network | 3 |
-| Allow prompt not appearing | Revoke authorisations on the TV, reconnect | 3 |
-| Home didn't switch | Press Home again; pick "Always" in the chooser | 5 |
-| A package refused to disable | Leave it on; everything else still worked | 4 |
-| Something I use got disabled | Re-enable it one-by-one, or Restore | 7 |
-| TV got a new IP | Just reconnect; the app knows the TV by identity | 6 |
-| Port check says still open | Wait a few seconds, or toggle Developer options off | 6 |
-| Want everything back | Restore — one click | 7 |
+| TV не найден | Одна Wi-Fi сеть и полоса, не гостевая сеть | 3 |
+| Запрос «Разрешить» не появляется | Отозвать разрешения на TV и подключиться снова | 3 |
+| Home не переключился | Нажать Home ещё раз; выбрать «Всегда» | 5 |
+| Пакет отказался отключаться | Оставить включённым; остальное работает | 4 |
+| Отключилось нужное приложение | Включить по одному или «Восстановить» | 7 |
+| У TV новый IP | Просто подключиться снова; приложение узнаёт TV по идентификатору | 6 |
+| Проверка пишет, что порт открыт | Подождать несколько секунд или выключить «Для разработчиков» | 6 |
+| Хочу вернуть всё | «Восстановить» — один клик | 7 |
 
 ---
 
-*Guide version: v0.1 (2026-10-26). Written to match app v0.1; when the app's steps change, this guide is the place to update, alongside the README screenshots.*
+*Версия руководства: v0.1 (2026-10-26). Написано для приложения v0.1; когда шаги приложения меняются,
+обновляйте это руководство вместе со скриншотами README.*

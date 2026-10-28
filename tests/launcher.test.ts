@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -16,7 +16,12 @@ process.env.HOME = home
 // the launcher having been built (CI builds it in a separate job).
 const resources = join(home, 'resources')
 mkdirSync(resources)
-symlinkSync(resolve('resources/upstream'), join(resources, 'upstream'))
+// A junction works on Windows without the symlink privilege; copy as a last resort.
+try {
+  symlinkSync(resolve('resources/upstream'), join(resources, 'upstream'), 'junction')
+} catch {
+  cpSync(resolve('resources/upstream'), join(resources, 'upstream'), { recursive: true })
+}
 writeFileSync(join(resources, 'launcher.apk'), randomBytes(200 * 1024))
 writeFileSync(join(resources, 'launcher.json'), JSON.stringify({ versionName: '2.4' }))
 configurePaths(resources, join(home, 'data'))
@@ -40,7 +45,7 @@ describe('launcher and theme', () => {
 
   it('installs, starts, then hands Home over and disables the stock launcher', async () => {
     const r = await L.install({ apk: 'bundled', stockLauncher: 'auto', inputKeyService: true, homeKeyService: false })
-    expect(r.summary).toMatch(/Installed/)
+    expect(r.summary).toMatch(/Установлено/)
     expect(r.ok).toBe(true)
     expect(tv.home).toBe('com.gathin.tvhome/.MainActivity')
     expect(tv.packages.get('com.google.android.apps.tv.launcherx')).toBe('disabled')
@@ -86,12 +91,12 @@ describe('launcher and theme', () => {
 
   it('says so plainly when the folder stays out of reach', async () => {
     tv.appDir = 'denied'
-    await expect(Th.apply({ config: { columns: 4 }, wallpaper: { kind: 'keep' }, wallpapers: { kind: 'keep' } })).rejects.toThrow(/won't let the app write/)
+    await expect(Th.apply({ config: { columns: 4 }, wallpaper: { kind: 'keep' }, wallpapers: { kind: 'keep' } })).rejects.toThrow(/не разрешает приложению записать/)
     tv.appDir = 'ok'
   }, 15000)
 
   it('refuses wallpaper names with shell syntax', async () => {
-    await expect(Th.apply({ config: {}, wallpaper: { kind: 'keep' }, wallpapers: { kind: 'set', images: [{ name: 'a;reboot.jpg', base64: '' }] } })).rejects.toThrow(/unsupported/)
+    await expect(Th.apply({ config: {}, wallpaper: { kind: 'keep' }, wallpapers: { kind: 'set', images: [{ name: 'a;reboot.jpg', base64: '' }] } })).rejects.toThrow(/неподдерживаемое/)
   })
 
   it('ships the upstream themes as presets', () => {

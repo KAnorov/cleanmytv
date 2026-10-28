@@ -89,7 +89,7 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
   async function apply(): Promise<void> {
     if (!plan) return
     setConfirm(null)
-    setBusy('Applying the list on the TV')
+    setBusy('Применяем список на TV')
     try {
       const r = await window.cytv.applyDebloat({
         listId: plan.listId,
@@ -111,7 +111,7 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
   async function restore(): Promise<void> {
     if (!plan) return
     setConfirm(null)
-    setBusy('Putting the recorded state back')
+    setBusy('Восстанавливаем записанное состояние')
     try {
       setResult(await window.cytv.restore(plan.listId))
     } catch (e) {
@@ -127,28 +127,29 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
 
   return (
     <>
-      <h1>Clean up</h1>
+      <h1>Очистка</h1>
       <p className="lede">
-        Pick the list for your TV and untick anything you use. Packages are switched off for your user, never uninstalled.
-        Before the first change, the app writes down how the TV was set up, so Restore puts every package back as it was.
+        Выберите список для своего TV и снимите галочки с того, чем пользуетесь. Пакеты отключаются только для вашего
+        пользователя и никогда не удаляются. Перед первым изменением приложение запоминает состояние TV, поэтому
+        «Восстановить» вернёт все пакеты как было.
       </p>
 
       <div className="card">
         <div className="card-head">
           <div>
-            <h2>Which list?</h2>
+            <h2>Какой список?</h2>
             <p className="muted small" style={{ margin: 0 }}>
               {selectedList
                 ? selectedList.score > 0
-                  ? 'This list matches your TV. Pick another if you know better.'
-                  : 'No list matched your model exactly. A list from the same brand and year is a good start.'
-                : 'Lists come from people who cleaned the same TV model.'}
+                  ? 'Этот список подходит вашему TV. Выберите другой, если знаете лучше.'
+                  : 'Точного совпадения с вашей моделью нет. Список той же марки и года — хорошая отправная точка.'
+                : 'Списки составлены людьми, которые чистили такую же модель TV.'}
             </p>
           </div>
-          <input type="search" placeholder="Search brand or model" value={query} onChange={(e) => setQuery(e.target.value)} style={{ width: 240 }} />
+          <input type="search" placeholder="Поиск по бренду или модели" value={query} onChange={(e) => setQuery(e.target.value)} style={{ width: 240 }} />
         </div>
         {!lists ? (
-          <Busy text="Loading lists" />
+          <Busy text="Загрузка списков" />
         ) : (
           <div className="list-picker" role="listbox">
             {visibleLists.map((l) => (
@@ -159,13 +160,13 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
                 className={`list-opt${l.id === listId ? ' selected' : ''}`}
                 onClick={() => setListId(l.id)}
               >
-                {l.score > 0 && <span className="chip ok">Match</span>}
-                {l.id === 'custom' && <span className="chip">Your TV</span>}
+                {l.score > 0 && <span className="chip ok">Совпадение</span>}
+                {l.id === 'custom' && <span className="chip">Ваш TV</span>}
                 <span className="title">{l.title}</span>
                 {l.id !== 'custom' && <span className="id">{l.id}</span>}
               </button>
             ))}
-            {visibleLists.length === 0 && <p className="muted">No list matches “{query}”.</p>}
+            {visibleLists.length === 0 && <p className="muted">Нет списков по запросу «{query}».</p>}
           </div>
         )}
       </div>
@@ -177,7 +178,7 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
         </div>
       )}
 
-      {loadingPlan && <Busy text="Reading what's installed on the TV" />}
+      {loadingPlan && <Busy text="Читаем установленные на TV пакеты" />}
 
       {plan && !loadingPlan && (
         <div className="card white">
@@ -187,7 +188,7 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
               {plan.header.length > 0 && (
                 <details>
                   <summary className="small muted" style={{ cursor: 'pointer' }}>
-                    Notes from the person who made this list
+                    Заметки автора списка
                   </summary>
                   <pre className="mono small" style={{ whiteSpace: 'pre-wrap', margin: '8px 0 0', color: 'var(--navy)' }}>
                     {plan.header.join('\n')}
@@ -200,36 +201,36 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
           <div className="stat-row">
             <div className="stat">
               <b>{counts.disable}</b>
-              <span>will be switched off</span>
+              <span>будет отключено</span>
             </div>
             <div className="stat">
               <b>{toEnable.length}</b>
-              <span>will be switched back on</span>
+              <span>будет включено</span>
             </div>
             <div className="stat">
               <b>{counts.disabled}</b>
-              <span>already off</span>
+              <span>уже отключено</span>
             </div>
             <div className="stat">
               <b>{counts.absent}</b>
-              <span>not on this TV</span>
+              <span>нет на этом TV</span>
             </div>
           </div>
 
           {plan.record ? (
             <div className="notice">
-              Restore point saved {fmtDate(plan.record.created)} in <code>{plan.record.path}</code>. Keep that file: it is the
-              only copy.
+              Точка восстановления сохранена {fmtDate(plan.record.created)} в <code>{plan.record.path}</code>. Сохраните
+              этот файл: это единственная копия.
             </div>
           ) : (
-            <div className="notice">No restore point yet. The app saves one before the first package is switched off.</div>
+            <div className="notice">Точки восстановления пока нет. Приложение сохранит её перед отключением первого пакета.</div>
           )}
 
           {stockHome && (
             <div className="notice warn">
-              This list switches off <code>{plan.homePackage}</code>, which is your Home screen right now. The app skips it until
-              the new launcher is Home, so the TV always has something to start. Install the launcher, then apply this list
-              again.
+              Этот список отключает <code>{plan.homePackage}</code>, который сейчас является вашим главным экраном.
+              Приложение пропустит его, пока новый лаунчер не станет Home, чтобы TV всегда было чем запуститься.
+              Установите лаунчер и примените список снова.
             </div>
           )}
 
@@ -237,10 +238,10 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
             <div className="seg" role="tablist">
               {(
                 [
-                  ['all', `All ${counts.all}`],
-                  ['disable', `Will switch off ${counts.disable}`],
-                  ['disabled', `Already off ${counts.disabled}`],
-                  ['absent', `Not installed ${counts.absent}`]
+                  ['all', `Все ${counts.all}`],
+                  ['disable', `Будет отключено ${counts.disable}`],
+                  ['disabled', `Уже отключено ${counts.disabled}`],
+                  ['absent', `Не установлено ${counts.absent}`]
                 ] as [Filter, string][]
               ).map(([f, label]) => (
                 <button key={f} className={filter === f ? 'on' : ''} onClick={() => setFilter(f)}>
@@ -250,7 +251,7 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
             </div>
             <span className="spacer" />
             <button className="btn small ghost" onClick={() => setTicked(new Set(plan.entries.filter(defaultTick).map((e) => e.pkg)))}>
-              Back to the list's choices
+              Вернуть выбор из списка
             </button>
           </div>
 
@@ -259,9 +260,9 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
               <thead>
                 <tr>
                   <th style={{ width: 36 }} />
-                  <th>Package</th>
-                  <th style={{ width: 120 }}>On the TV</th>
-                  <th>Why</th>
+                  <th>Пакет</th>
+                  <th style={{ width: 120 }}>На TV</th>
+                  <th>Причина</th>
                 </tr>
               </thead>
               <tbody>
@@ -270,7 +271,7 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
                     <td>
                       <input
                         type="checkbox"
-                        aria-label={`Switch off ${e.pkg}`}
+                        aria-label={`Отключить ${e.pkg}`}
                         checked={ticked.has(e.pkg)}
                         disabled={e.state === 'absent'}
                         onChange={(ev) => toggle(e.pkg, ev.target.checked)}
@@ -278,10 +279,10 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
                     </td>
                     <td>
                       <div className="pkg-name">{e.pkg}</div>
-                      {e.choice && <div className="choice-tag">Your choice · {e.choice}</div>}
+                      {e.choice && <div className="choice-tag">Ваш выбор · {e.choice}</div>}
                       <div className="small muted">
-                        {!e.suggested && 'Kept by the list author. '}
-                        {e.common > 1 && `Switched off in ${e.common} lists.`}
+                        {!e.suggested && 'Оставлено автором списка. '}
+                        {e.common > 1 && `Отключено в ${e.common} списках.`}
                       </div>
                     </td>
                     <td>
@@ -293,7 +294,7 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
                 {shown.length === 0 && (
                   <tr>
                     <td colSpan={4} className="muted">
-                      Nothing here.
+                      Здесь пусто.
                     </td>
                   </tr>
                 )}
@@ -303,19 +304,19 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
 
           <div style={{ marginTop: 16 }}>
             <button className="btn small ghost" onClick={() => setShowAdvanced(!showAdvanced)} aria-expanded={showAdvanced}>
-              {showAdvanced ? '▾' : '▸'} Safety overrides
+              {showAdvanced ? '▾' : '▸'} Обойти защиту
             </button>
             {showAdvanced && (
               <div className="card" style={{ marginTop: 8 }}>
                 <Toggle
-                  label="Switch off the current Home app anyway"
-                  hint="Only if you can still reach the TV another way. Without a launcher, the Home button lands on a test app or nothing."
+                  label="Всё равно отключить текущее приложение Home"
+                  hint="Только если вы можете управлять TV другим способом. Без лаунчера кнопка Home может открыть тестовое приложение или ничего."
                   checked={forceHome}
                   onChange={setForceHome}
                 />
                 <Toggle
-                  label="Switch off Google TV's setup wizard even if it owns the Wi-Fi network"
-                  hint="Android deletes a network saved during setup when the wizard is switched off. Use this on Ethernet only."
+                  label="Отключить мастер настройки Google TV, даже если ему принадлежит Wi-Fi сеть"
+                  hint="Android удаляет сеть, сохранённую при настройке, когда мастер отключается. Используйте только при подключении по Ethernet."
                   checked={forceSetup}
                   onChange={setForceSetup}
                 />
@@ -329,43 +330,43 @@ export function Debloat({ status, go, markDone }: ScreenProps): ReactNode {
               disabled={!!busy || (toDisable.length === 0 && toEnable.length === 0)}
               onClick={() => setConfirm('apply')}
             >
-              Apply to TV
+              Применить на TV
             </button>
             <button className="btn" disabled={!!busy || !plan.record} onClick={() => setConfirm('restore')}>
-              Restore
+              Восстановить
             </button>
             <span className="spacer" />
             <button className="btn ghost" onClick={() => go('launcher')}>
-              Next: install the launcher
+              Далее: установить лаунчер
             </button>
           </div>
         </div>
       )}
 
       {confirm === 'apply' && plan && (
-        <Confirm title="Apply these changes?" confirmLabel="Apply" onConfirm={apply} onCancel={() => setConfirm(null)}>
+        <Confirm title="Применить эти изменения?" confirmLabel="Применить" onConfirm={apply} onCancel={() => setConfirm(null)}>
           <p>
-            Switch off <b>{toDisable.length}</b> packages
+            Отключить <b>{toDisable.length}</b> пакетов
             {toEnable.length > 0 && (
               <>
-                {' '}and switch <b>{toEnable.length}</b> back on
+                {' '}и включить <b>{toEnable.length}</b> обратно
               </>
             )}{' '}
-            on {status.probe ? `${status.probe.manufacturer} ${status.probe.model}` : status.host}.
+            на {status.probe ? `${status.probe.manufacturer} ${status.probe.model}` : status.host}.
           </p>
           <p className="muted small">
-            {plan.record ? 'The restore point from the first run is kept.' : 'A restore point is saved first.'} Apps you keep
-            update through the Play Store as before.
+            {plan.record ? 'Точка восстановления от первого запуска сохраняется.' : 'Сначала будет сохранена точка восстановления.'}{' '}
+            Оставленные приложения обновляются через Play Store как раньше.
           </p>
         </Confirm>
       )}
       {confirm === 'restore' && plan && (
-        <Confirm title="Restore this TV?" confirmLabel="Restore" onConfirm={restore} onCancel={() => setConfirm(null)}>
+        <Confirm title="Восстановить этот TV?" confirmLabel="Восстановить" onConfirm={restore} onCancel={() => setConfirm(null)}>
           <p>
-            Every package from this list goes back to how it was on {fmtDate(plan.record?.created)}. Packages that were already
-            off then stay off. Home goes back to the launcher that owned it.
+            Каждый пакет из этого списка вернётся в состояние на {fmtDate(plan.record?.created)}. Пакеты, которые уже были
+            отключены тогда, останутся отключёнными. Home вернётся лаунчеру, которому принадлежал.
           </p>
-          <p className="muted small">The new launcher stays installed. Remove it from the TV's Settings → Apps if you want it gone.</p>
+          <p className="muted small">Новый лаунчер останется установленным. Удалите его в Настройках TV → Приложения, если он не нужен.</p>
         </Confirm>
       )}
     </>
@@ -380,16 +381,16 @@ function defaultTick(e: DebloatEntry): boolean {
 }
 
 function StateBadge({ state, recorded, ticked }: { state: PackageState; recorded?: PackageState; ticked: boolean }): ReactNode {
-  if (state === 'absent') return <span className="chip optional">Not installed</span>
+  if (state === 'absent') return <span className="chip optional">Не установлено</span>
   if (state === 'disabled') {
-    if (!ticked && recorded === 'enabled') return <span className="chip warn">Off · turns on</span>
-    return <span className="chip">Off</span>
+    if (!ticked && recorded === 'enabled') return <span className="chip warn">Выкл. · включится</span>
+    return <span className="chip">Выкл.</span>
   }
-  return ticked ? <span className="chip warn">On · turns off</span> : <span className="chip ok">On · kept</span>
+  return ticked ? <span className="chip warn">Вкл. · отключится</span> : <span className="chip ok">Вкл. · остаётся</span>
 }
 
 function fmtDate(iso?: string): string {
-  if (!iso) return 'earlier'
+  if (!iso) return 'ранее'
   // recovery.py writes %Y-%m-%dT%H:%M:%S%z, e.g. 2026-10-20T14:03:00+0100.
   const d = new Date(iso.replace(/([+-]\d{2})(\d{2})$/, '$1:$2'))
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })

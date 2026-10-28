@@ -59,13 +59,13 @@ export function TvPreview(props: { apps: TvApp[]; cfg: LauncherConfig; wallpaper
               {val(cfg, 'shamsi_date') && <span>27 Mehr 1405 · </span>}
               {now.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}
             </div>
-            {showStats && <div className="tv-stats">CPU 12% · 1.1 GB free · 5.2 GB storage</div>}
+            {showStats && <div className="tv-stats">CPU 12% · 1.1 ГБ свободно · 5.2 ГБ накопитель</div>}
           </div>
           <div className="tv-pills">
             {cfg.reorder_button && <span className="tv-pill">⇅</span>}
-            <span className="tv-pill">{festival ? '🔔 ' : ''}Inputs</span>
+            <span className="tv-pill">{festival ? '🔔 ' : ''}Входы</span>
             <span className="tv-pill">{festival ? '🪔 ' : ''}Wi-Fi</span>
-            <span className="tv-pill">{festival ? '🌼 ' : ''}Settings</span>
+            <span className="tv-pill">{festival ? '🌼 ' : ''}Настройки</span>
           </div>
         </div>
 
@@ -128,7 +128,7 @@ function useNow(): Date {
 
 function greetingFor(d: Date): string {
   const h = d.getHours()
-  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
+  return h < 12 ? 'Доброе утро' : h < 17 ? 'Добрый день' : 'Добрый вечер'
 }
 
 function festivalActive(cfg: LauncherConfig, now: Date): boolean {

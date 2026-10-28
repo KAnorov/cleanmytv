@@ -3,10 +3,10 @@ import type { ScreenProps } from '../App'
 import { Busy } from '../components/ui'
 
 const STEPS = [
-  'On the TV, open Developer options and turn off USB debugging.',
-  'Turn off Network debugging, ADB debugging or Wireless debugging if your TV has it.',
-  'Optional: choose Revoke USB debugging authorisations, so no computer is trusted any more. Skip this to avoid the Allow prompt next time.',
-  'Restart the TV.'
+  'На TV откройте «Для разработчиков» и выключите «Отладку по USB».',
+  'Выключите «Отладку по сети», «Отладку ADB» или «Отладку по Wi-Fi», если они есть.',
+  'По желанию: выберите «Отозвать разрешения на отладку по USB», чтобы ни один компьютер больше не считался доверенным. Пропустите, если не хотите заново подтверждать доступ.',
+  'Перезагрузите TV.'
 ]
 
 export function Finish({ status, markDone }: ScreenProps): ReactNode {
@@ -35,15 +35,15 @@ export function Finish({ status, markDone }: ScreenProps): ReactNode {
 
   return (
     <>
-      <h1>Finish and lock</h1>
+      <h1>Завершение и защита</h1>
       <p className="lede">
-        Network debugging is a plain-text shell on port 5555. On some TVs any device on your Wi-Fi can use it without the Allow
-        prompt. Close it when you're done. The launcher, the clean-up and your theme keep working without it. Turn it on again
-        any time you want to change something from this app.
+        Отладка по сети — это консоль без шифрования на порту 5555. На некоторых TV любое устройство в вашей Wi-Fi сети
+        может использовать её без запроса разрешения. Закройте её, когда закончите. Лаунчер, очистка и тема продолжат
+        работать. Включите отладку снова, когда захотите что-то изменить из этого приложения.
       </p>
 
       <div className="card">
-        <h2>On the TV</h2>
+        <h2>На TV</h2>
         <ul className="checklist">
           {STEPS.map((s, i) => (
             <li key={i} className="check" style={{ gridTemplateColumns: 'auto 1fr' }}>
@@ -56,41 +56,42 @@ export function Finish({ status, markDone }: ScreenProps): ReactNode {
         </ul>
         {status.state === 'connected' && (
           <p className="small muted" style={{ marginTop: 10 }}>
-            The app is still connected. Turning debugging off ends the connection, which is expected.
+            Приложение всё ещё подключено. Выключение отладки оборвёт соединение — это нормально.
           </p>
         )}
       </div>
 
       <div className="card white">
-        <h2>Coming back later</h2>
+        <h2>Возвращение позже</h2>
         <p className="muted" style={{ marginBottom: 8 }}>
-          To change the wallpaper, the app order or anything else in Customise:
+          Чтобы изменить обои, порядок приложений или другие настройки в разделе «Настройка»:
         </p>
         <ol className="small" style={{ margin: '0 0 8px', paddingLeft: 20 }}>
-          <li>On the TV, turn USB debugging on again (and Network or ADB debugging if your TV has it).</li>
-          <li>Open this app. It reconnects to the TV by itself, finds it again if its address changed, and opens Customise.</li>
-          <li>If you revoked the authorisations, choose Allow on the TV once more.</li>
-          <li>Apply your changes, then turn debugging off again.</li>
+          <li>На TV снова включите «Отладку по USB» (и «Отладку по сети» или «Отладку ADB», если они есть).</li>
+          <li>Откройте это приложение. Оно само подключится к TV, найдёт его по новому адресу и откроет «Настройку».</li>
+          <li>Если вы отозвали разрешения, на TV снова выберите «Разрешить».</li>
+          <li>Примените изменения и снова выключите отладку.</li>
         </ol>
         <p className="small muted" style={{ margin: 0 }}>
-          The app reads what is on the TV before you edit, so you always start from the current wallpaper and order. Some Google TVs
-          that needed a pairing code close port 5555 when they restart; the app shows the pairing form again if so.
+          Перед редактированием приложение читает текущее состояние TV, поэтому вы всегда начинаете с актуальных обоев и
+          порядка. Некоторые Google TV, которым нужен код сопряжения, закрывают порт 5555 после перезагрузки; тогда
+          приложение снова покажет форму сопряжения.
         </p>
       </div>
 
       <div className="card white">
-        <h2>Check from this computer</h2>
-        <p className="muted">Once the TV has restarted, check that port 5555 no longer answers.</p>
+        <h2>Проверка с этого компьютера</h2>
+        <p className="muted">После перезагрузки TV проверьте, что порт 5555 больше не отвечает.</p>
         <div className="row">
           <input type="text" value={host} onChange={(e) => setHost(e.target.value)} placeholder="192.168.1.50" style={{ width: 200 }} />
           <button className="btn primary" onClick={check} disabled={checking || !/^\d{1,3}(\.\d{1,3}){3}$/.test(host.trim())}>
-            Check port 5555 is closed
+            Проверить, что порт 5555 закрыт
           </button>
-          {checking && <Busy text="Knocking on port 5555" />}
+          {checking && <Busy text="Стучимся в порт 5555" />}
         </div>
         {res && (
           <div className={`notice ${res.closed ? 'ok' : 'warn'}`} style={{ marginTop: 16, marginBottom: 0 }}>
-            <b>{res.closed ? 'Closed.' : 'Still open.'}</b> {res.message}
+            <b>{res.closed ? 'Закрыт.' : 'Всё ещё открыт.'}</b> {res.message}
           </div>
         )}
       </div>

@@ -37,11 +37,11 @@ describe('background downloads in the main process', () => {
 
   it('refuses other hosts, plain http and redirects that leave the list', async () => {
     const never = async (): Promise<Response> => { throw new Error('should not fetch') }
-    await expect(get('https://example.com/a.jpg', never)).rejects.toThrow(/only downloads/)
-    await expect(get('http://www.bing.com/a.jpg', never)).rejects.toThrow(/only downloads/)
-    await expect(get('https://www.bing.com.evil.test/a.jpg', never)).rejects.toThrow(/only downloads/)
+    await expect(get('https://example.com/a.jpg', never)).rejects.toThrow(/скачивает обои только с/)
+    await expect(get('http://www.bing.com/a.jpg', never)).rejects.toThrow(/скачивает обои только с/)
+    await expect(get('https://www.bing.com.evil.test/a.jpg', never)).rejects.toThrow(/скачивает обои только с/)
     const away = async (): Promise<Response> => ok('', { location: 'https://evil.test/x' }, 302)
-    await expect(get('https://www.bing.com/a.jpg', away)).rejects.toThrow(/only downloads/)
+    await expect(get('https://www.bing.com/a.jpg', away)).rejects.toThrow(/скачивает обои только с/)
   })
 
   it('follows a redirect within the list', async () => {

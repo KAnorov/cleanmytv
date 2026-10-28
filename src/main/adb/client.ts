@@ -125,27 +125,27 @@ export class AdbClient {
       s.once('connect', () => { clearTimeout(timer); resolve(s) })
       s.once('error', (e: NodeJS.ErrnoException) => {
         clearTimeout(timer)
-        if (e.code === 'ECONNREFUSED') reject(new AdbError(`${opts.host} refused port ${port}: network debugging is off.`, 'refused'))
-        else reject(new AdbError(`could not reach ${opts.host}:${port} (${e.code ?? e.message}).`, 'unreachable'))
+        if (e.code === 'ECONNREFUSED') reject(new AdbError(`${opts.host} отклонил порт ${port}: отладка по сети выключена.`, 'refused'))
+        else reject(new AdbError(`не удалось связаться с ${opts.host}:${port} (${e.code ?? e.message}).`, 'unreachable'))
       })
     })
     this.socket.setNoDelay(true)
     this.socket.on('data', (chunk: Buffer) => this.onData(chunk))
-    this.socket.on('close', () => this.fail(new AdbError('the TV closed the connection.', 'closed')))
-    this.socket.on('error', (e) => this.fail(new AdbError(`connection error: ${e.message}`, 'closed')))
+    this.socket.on('close', () => this.fail(new AdbError('TV закрыл соединение.', 'closed')))
+    this.socket.on('error', (e) => this.fail(new AdbError(`ошибка соединения: ${e.message}`, 'closed')))
 
     this.send(A_CNXN, VERSION, MAX_DATA, Buffer.from('host::\0'))
     let packet = await this.read(10000)
     if (packet.cmd === A_STLS) {
       this.close()
-      throw new AdbError('this port uses Wireless debugging, which needs a one-time pairing code.', 'tls')
+      throw new AdbError('этот порт использует отладку по Wi-Fi, для которой нужен одноразовый код сопряжения.', 'tls')
     }
     let tried = 0
     let sentPublicKey = false
     while (packet.cmd === A_AUTH && packet.arg0 === AUTH_TOKEN) {
       if (packet.data.length !== TOKEN_SIZE) {
         this.close()
-        throw new AdbError(`the device sent a ${packet.data.length}-byte login challenge, not the 20 bytes a TV sends.`, 'protocol')
+        throw new AdbError(`устройство прислало запрос входа на ${packet.data.length} байт, а TV присылает 20 байт.`, 'protocol')
       }
       if (tried < opts.keys.length) {
         this.send(A_AUTH, AUTH_SIGNATURE, 0, sign(opts.keys[tried++], packet.data))
@@ -159,16 +159,16 @@ export class AdbClient {
           packet = await this.read(opts.authTimeoutMs ?? 120000)
         } catch (e) {
           this.close()
-          throw new AdbError('nobody pressed Allow on the TV in time.', 'auth')
+          throw new AdbError('на TV вовремя не нажали «Разрешить».', 'auth')
         }
       } else {
         this.close()
-        throw new AdbError('the TV rejected the key. Choose Allow on the TV and try again.', 'auth')
+        throw new AdbError('TV отклонил ключ. Выберите «Разрешить» на TV и попробуйте снова.', 'auth')
       }
     }
     if (packet.cmd !== A_CNXN) {
       this.close()
-      throw new AdbError('unexpected answer from the TV during the handshake.', 'protocol')
+      throw new AdbError('неожиданный ответ TV во время рукопожатия.', 'protocol')
     }
     this.maxData = Math.max(MIN_DATA, Math.min(MAX_DATA, packet.arg1 || 4096))
     this.banner = packet.data.toString('utf8').replace(/\0+$/, '')
@@ -185,7 +185,7 @@ export class AdbClient {
   }
 
   close(): void {
-    this.fail(new AdbError('disconnected.', 'closed'))
+    this.fail(new AdbError('соединение разорвано.', 'closed'))
     this.socket?.destroy()
   }
 
@@ -202,7 +202,7 @@ export class AdbClient {
       const cmd = this.buffer.readUInt32LE(0)
       if (len > MAX_DATA || this.buffer.readUInt32LE(20) !== (cmd ^ 0xffffffff) >>> 0) {
         this.buffer = Buffer.alloc(0)
-        this.fail(new AdbError('the device sent a malformed packet.', 'protocol'))
+        this.fail(new AdbError('устройство прислало повреждённый пакет.', 'protocol'))
         this.socket.destroy()
         return
       }
@@ -231,7 +231,7 @@ export class AdbClient {
           s.bytes += p.data.length
           if (s.bytes > MAX_STREAM_BYTES) {
             s.chunks = [] // the caller gets the error, never a truncated answer
-            this.fail(new AdbError(`a command returned more than ${MAX_STREAM_BYTES / 1048576} MB.`, 'protocol'))
+            this.fail(new AdbError(`команда вернула больше ${MAX_STREAM_BYTES / 1048576} МБ.`, 'protocol'))
             this.socket.destroy()
             return
           }
@@ -255,7 +255,7 @@ export class AdbClient {
       const timer = setTimeout(() => {
         this.waiters = this.waiters.filter((w) => w !== waiter)
         this.abortRead = null
-        reject(new AdbError('the TV stopped answering.', 'timeout'))
+        reject(new AdbError('TV перестал отвечать.', 'timeout'))
       }, timeoutMs)
       const waiter = (p: Packet): void => { clearTimeout(timer); this.abortRead = null; resolve(p) }
       this.abortRead = (err) => { clearTimeout(timer); this.waiters = this.waiters.filter((w) => w !== waiter); reject(err) }
@@ -271,7 +271,7 @@ export class AdbClient {
     const run = (): Promise<Buffer> => new Promise<Buffer>((resolve, reject) => {
       if (this.closedError) return reject(this.closedError)
       const payload = Buffer.from(service + '\0')
-      if (payload.length > this.maxData) return reject(new AdbError(`command too long for this TV (${payload.length} > ${this.maxData} bytes).`, 'protocol'))
+      if (payload.length > this.maxData) return reject(new AdbError(`команда слишком длинная для этого TV (${payload.length} > ${this.maxData} байт).`, 'protocol'))
       const localId = this.nextId++
       let done = false
       const timer = setTimeout(() => {

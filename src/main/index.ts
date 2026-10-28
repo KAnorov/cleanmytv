@@ -40,46 +40,46 @@ async function checks(): Promise<CheckItem[]> {
   const jdk = tools.javaHome()
   return [
     {
-      id: 'network', label: 'Local network',
+      id: 'network', label: 'Локальная сеть',
       ...(localSubnets().length
-        ? { status: 'ok', detail: `This computer is on ${localSubnets().map((n) => n + '.x').join(', ')}.` }
-        : { status: 'missing', detail: 'No home network found. Join the same Wi-Fi or Ethernet as the TV.' })
+        ? { status: 'ok', detail: `Компьютер в сети ${localSubnets().map((n) => n + '.x').join(', ')}.` }
+        : { status: 'missing', detail: 'Домашняя сеть не найдена. Подключитесь к той же Wi-Fi или Ethernet, что и TV.' })
     },
     {
-      id: 'tv', label: 'TV with network debugging on',
+      id: 'tv', label: 'TV с включённой отладкой по сети',
       ...(connected
-        ? { status: 'ok', detail: `${st.probe?.manufacturer} ${st.probe?.model} at ${st.host}` }
-        : { status: 'missing', detail: 'Turn on Developer options and USB debugging on the TV, then find it below.' })
+        ? { status: 'ok', detail: `${st.probe?.manufacturer} ${st.probe?.model} по адресу ${st.host}` }
+        : { status: 'missing', detail: 'Включите на TV «Для разработчиков» и «Отладку по USB», затем найдите его ниже.' })
     },
     {
-      id: 'auth', label: 'This computer allowed on the TV',
+      id: 'auth', label: 'Компьютер разрешён на TV',
       ...(connected
-        ? { status: 'ok', detail: 'The TV accepted this computer.' }
+        ? { status: 'ok', detail: 'TV принял этот компьютер.' }
         : st.state === 'waiting-auth'
-          ? { status: 'checking', detail: 'Choose Allow on the TV.' }
-          : { status: 'missing', detail: 'The TV asks once, the first time you connect.' })
+          ? { status: 'checking', detail: 'Выберите «Разрешить» на TV.' }
+          : { status: 'missing', detail: 'TV спросит один раз при первом подключении.' })
     },
     {
-      id: 'apk', label: 'Clean launcher',
+      id: 'apk', label: 'Чистый лаунчер',
       ...(hasApk
-        ? { status: 'ok', detail: existsSync(paths.bundledApk) ? 'Bundled with this app, nothing to download.' : 'Your local build is ready.' }
-        : { status: 'missing', detail: 'Not bundled in this copy. Build it from source (Launcher step).' })
+        ? { status: 'ok', detail: existsSync(paths.bundledApk) ? 'Встроен в приложение, скачивать не нужно.' : 'Локальная сборка готова.' }
+        : { status: 'missing', detail: 'Не входит в эту копию. Соберите из исходников (шаг «Лаунчер»).' })
     },
     {
-      id: 'jdk', label: 'Java 17 (only to build from source)',
-      ...(jdk ? { status: 'ok', detail: jdk } : { status: 'optional', detail: 'About 190 MB. Not needed with the bundled launcher.', download: 'jdk' })
+      id: 'jdk', label: 'Java 17 (только для сборки из исходников)',
+      ...(jdk ? { status: 'ok', detail: jdk } : { status: 'optional', detail: 'Около 190 МБ. Не нужно при встроенном лаунчере.', download: 'jdk' })
     },
     {
-      id: 'sdk', label: 'Android SDK 34 (only to build from source)',
-      ...(tools.sdkReady() ? { status: 'ok', detail: tools.dirs.sdk } : { status: 'optional', detail: 'About 250 MB, needs Java 17 first.', download: 'sdk' })
+      id: 'sdk', label: 'Android SDK 34 (только для сборки из исходников)',
+      ...(tools.sdkReady() ? { status: 'ok', detail: tools.dirs.sdk } : { status: 'optional', detail: 'Около 250 МБ, сначала нужна Java 17.', download: 'sdk' })
     },
     {
-      id: 'source', label: 'Launcher source (only to build from source)',
-      ...(tools.sourceReady() ? { status: 'ok', detail: tools.dirs.source } : { status: 'optional', detail: 'The latest cleanyourtv code from GitHub, about 7 MB.', download: 'source' })
+      id: 'source', label: 'Исходники лаунчера (только для сборки)',
+      ...(tools.sourceReady() ? { status: 'ok', detail: tools.dirs.source } : { status: 'optional', detail: 'Актуальный код cleanyourtv с GitHub, около 7 МБ.', download: 'source' })
     },
     {
-      id: 'platform-tools', label: "Google's adb (only for Wireless debugging pairing)",
-      ...(tools.platformToolsReady() ? { status: 'ok', detail: tools.adbPath() } : { status: 'optional', detail: 'About 15 MB. Some Google TVs need a one-time pairing code.', download: 'platform-tools' })
+      id: 'platform-tools', label: 'Google adb (только для сопряжения по Wi-Fi)',
+      ...(tools.platformToolsReady() ? { status: 'ok', detail: tools.adbPath() } : { status: 'optional', detail: 'Около 15 МБ. Некоторым Google TV нужен одноразовый код сопряжения.', download: 'platform-tools' })
     }
   ] as CheckItem[]
 }
@@ -186,7 +186,7 @@ app.whenReady().then(() => {
   T.init(paths.adbKey, (s: ConnStatus) => send('status', s))
   for (const [name, fn] of Object.entries(handlers)) {
     ipcMain.handle(name, async (e, ...args: unknown[]) => {
-      if (!isAppUrl(e.senderFrame?.url)) throw new Error('blocked: this request did not come from the app window')
+      if (!isAppUrl(e.senderFrame?.url)) throw new Error('заблокировано: запрос пришёл не из окна приложения')
       try {
         return await (fn as (...a: unknown[]) => Promise<unknown>)(...args)
       } catch (e) {

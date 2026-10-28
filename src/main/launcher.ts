@@ -42,7 +42,7 @@ async function detectStock(): Promise<string> {
   const homePkg = answer.split('/')[0]
   if (KNOWN_STOCK_LAUNCHERS.includes(homePkg)) return homePkg
   if (homePkg === PKG) {
-    log(TASK, 'info', 'Home already belongs to this launcher; nothing will be disabled.')
+    log(TASK, 'info', 'Home уже принадлежит этому лаунчеру; ничего отключать не нужно.')
     return 'none'
   }
   if (homePkg === 'android') {
@@ -51,15 +51,15 @@ async function detectStock(): Promise<string> {
     const claims = await T.homeClaimants()
     const found = KNOWN_STOCK_LAUNCHERS.filter((k) => claims.includes(k))
     if (found.length === 1) {
-      log(TASK, 'info', `Home is Android's chooser; the stock launcher among the candidates is ${found[0]}.`)
+      log(TASK, 'info', `Home — это системный выбор Android; штатный лаунчер среди кандидатов: ${found[0]}.`)
       return found[0]
     }
-    throw new Error(`Home is Android's launcher chooser and ${found.length} known stock launchers claim it. Pick a default on the TV first, or choose "Leave the stock launcher alone".`)
+    throw new Error(`Home — это системный выбор Android, и на него претендуют ${found.length} известных штатных лаунчеров. Сначала выберите лаунчер по умолчанию на TV или укажите «Не трогать штатный лаунчер».`)
   }
   if (homePkg === 'com.google.android.tungsten.setupwraith') {
-    throw new Error("Home resolves to Google TV's setup wizard. Add com.google.android.tungsten.setupwraith to your cleanup list, apply it, then install again.")
+    throw new Error('Home указывает на мастер настройки Google TV. Добавьте com.google.android.tungsten.setupwraith в список очистки, примените его и установите лаунчер снова.')
   }
-  throw new Error(`Home resolves to '${homePkg || 'nothing'}', which is not a stock launcher this app knows. Choose "Leave the stock launcher alone" to install without disabling anything.`)
+  throw new Error(`Home указывает на «${homePkg || 'ничего'}» — это не известный приложению штатный лаунчер. Выберите «Не трогать штатный лаунчер», чтобы установить без отключения.`)
 }
 
 async function rollback(stock: string): Promise<boolean> {
@@ -69,11 +69,11 @@ async function rollback(stock: string): Promise<boolean> {
     await T.sh(TASK, `cmd package set-home-activity --user 0 $(${T.HOME_QUERY} ${stock} | tail -n 1)`)
     const back = await T.homeComponent()
     if (back?.startsWith(stock + '/')) {
-      log(TASK, 'ok', `${stock} owns Home again.`)
+      log(TASK, 'ok', `${stock} снова владеет Home.`)
       return true
     }
   } catch (e) {
-    log(TASK, 'error', `rollback failed: ${(e as Error).message}`)
+    log(TASK, 'error', `откат не удался: ${(e as Error).message}`)
   }
   return false
 }
@@ -81,13 +81,13 @@ async function rollback(stock: string): Promise<boolean> {
 export async function install(req: InstallRequest): Promise<InstallResult> {
   const apkPath = req.apk === 'local' ? paths.localApk : paths.bundledApk
   if (!existsSync(apkPath)) {
-    return { ok: false, summary: req.apk === 'local' ? 'No local build yet. Build from source first.' : 'The bundled launcher is missing from this copy of the app.', warnings: [] }
+    return { ok: false, summary: req.apk === 'local' ? 'Локальной сборки ещё нет. Сначала соберите из исходников.' : 'В этой копии приложения нет встроенного лаунчера.', warnings: [] }
   }
   const warnings: string[] = []
   let stock = req.stockLauncher
   if (stock === 'auto') stock = await detectStock()
-  else if (stock !== 'none' && !T.PACKAGE_RE.test(stock)) throw new Error(`not a package name: ${stock}`)
-  log(TASK, 'info', `stock launcher: ${stock}`)
+  else if (stock !== 'none' && !T.PACKAGE_RE.test(stock)) throw new Error(`это не имя пакета: ${stock}`)
+  log(TASK, 'info', `штатный лаунчер: ${stock}`)
 
   const tmp = '/data/local/tmp/tvhome.apk'
   await T.pushB64(TASK, readFileSync(apkPath), tmp)
@@ -100,8 +100,8 @@ export async function install(req: InstallRequest): Promise<InstallResult> {
       return {
         ok: false,
         incompatible: true,
-        summary: 'The launcher on the TV was built on another computer and signed with a different key.',
-        warnings: ['Replacing it uninstalls the old copy first. Tile order and app library choices made on the TV are lost; settings pushed from this app are kept.']
+        summary: 'Лаунчер на TV собран на другом компьютере и подписан другим ключом.',
+        warnings: ['Для замены сначала удаляется старая копия. Порядок плиток и выбор приложений, сделанные на TV, будут потеряны; настройки из этого приложения сохранятся.']
       }
     }
     // Home must not point at a package that is about to vanish: give it to the stock launcher first.
@@ -115,13 +115,13 @@ export async function install(req: InstallRequest): Promise<InstallResult> {
   }
   await T.sh(TASK, `rm -f ${tmp}`)
   if (!out.includes('Success')) {
-    return { ok: false, summary: 'Install failed; the stock launcher was left alone.', warnings: [out.trim()] }
+    return { ok: false, summary: 'Установка не удалась; штатный лаунчер не тронут.', warnings: [out.trim()] }
   }
 
   // Start the launcher before the stock Home is touched: "Status: ok" proves the activity came up.
   const start = await T.sh(TASK, `am start -W -n ${MAIN}`)
   if (!start.includes('Status: ok') || /^Error/im.test(start)) {
-    return { ok: false, summary: `The new launcher did not start; ${stock === 'none' ? 'nothing was disabled' : stock + ' was left enabled'}.`, warnings: [start.trim()] }
+    return { ok: false, summary: `Новый лаунчер не запустился; ${stock === 'none' ? 'ничего не отключено' : stock + ' оставлен включённым'}.`, warnings: [start.trim()] }
   }
   await T.batch(TASK, [
     `pm grant ${PKG} android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted`,
@@ -138,20 +138,20 @@ export async function install(req: InstallRequest): Promise<InstallResult> {
     const back = await rollback(stock)
     return {
       ok: false,
-      summary: now ? `Home resolves to ${now}, not to the new launcher.` : 'The TV stopped answering while Home was switched.',
+      summary: now ? `Home указывает на ${now}, а не на новый лаунчер.` : 'TV перестал отвечать во время смены Home.',
       warnings: [
-        back ? `${stock} was put back as Home.` : `Could not give Home back automatically. Run: pm enable --user 0 ${stock}`,
-        'On Google TV this usually means com.google.android.tungsten.setupwraith also claims Home: add it to your cleanup list, apply it, then install again.'
+        back ? `${stock} снова назначен Home.` : `Не удалось вернуть Home автоматически. Выполните: pm enable --user 0 ${stock}`,
+        'На Google TV это обычно означает, что на Home также претендует com.google.android.tungsten.setupwraith: добавьте его в список очистки, примените и установите снова.'
       ]
     }
   }
-  log(TASK, 'ok', `Home now resolves to ${now}`)
+  log(TASK, 'ok', `Теперь Home указывает на ${now}`)
 
   // Optional accessibility services; Android switches them off on every reinstall.
   for (const [on, svc] of [[req.inputKeyService, 'InputKeyService'], [req.homeKeyService, 'HomeKeyService']] as const) {
     if (on) await enableService(svc)
   }
-  return { ok: true, summary: 'Installed. Press Home on the remote to see it.', warnings }
+  return { ok: true, summary: 'Установлено. Нажмите Home на пульте, чтобы увидеть.', warnings }
 }
 
 /** Appends to enabled_accessibility_services without dropping other services. */
@@ -163,9 +163,9 @@ export async function enableService(name: 'InputKeyService' | 'HomeKeyService'):
 export async function useStock(): Promise<ApplyResult> {
   const { installed } = await T.packageSets()
   const stock = KNOWN_STOCK_LAUNCHERS.find((p) => installed.has(p))
-  if (!stock) return { ok: false, summary: 'No stock launcher this app knows is installed on the TV.', warnings: [] }
+  if (!stock) return { ok: false, summary: 'На TV не установлен известный приложению штатный лаунчер.', warnings: [] }
   const ok = await rollback(stock)
   return ok
-    ? { ok, summary: `${stock} is Home again. The clean launcher stays installed; install again to switch back.`, warnings: [] }
-    : { ok, summary: `Could not make ${stock} Home. Pick it in the TV's home settings.`, warnings: [] }
+    ? { ok, summary: `${stock} снова Home. Чистый лаунчер остаётся установленным; установите его снова, чтобы вернуться.`, warnings: [] }
+    : { ok, summary: `Не удалось назначить ${stock} на Home. Выберите его в настройках главного экрана TV.`, warnings: [] }
 }

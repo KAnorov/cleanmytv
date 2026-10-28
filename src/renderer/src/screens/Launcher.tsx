@@ -30,7 +30,7 @@ export function Launcher({ go, markDone }: ScreenProps): ReactNode {
 
   async function install(replaceIncompatible = false): Promise<void> {
     setAskReplace(false)
-    setBusy('Installing the launcher. Keep the TV on.')
+    setBusy('Устанавливаем лаунчер. Не выключайте TV.')
     setResult(null)
     const req: InstallRequest = { apk, stockLauncher: stock, inputKeyService: inputKey, homeKeyService: homeKey, replaceIncompatible }
     try {
@@ -48,7 +48,7 @@ export function Launcher({ go, markDone }: ScreenProps): ReactNode {
 
   async function useStock(): Promise<void> {
     setAskStock(false)
-    setBusy('Giving Home back to the stock launcher')
+    setBusy('Возвращаем Home штатному лаунчеру')
     try {
       setResult(await window.cytv.useStockLauncher())
     } catch (e) {
@@ -63,10 +63,11 @@ export function Launcher({ go, markDone }: ScreenProps): ReactNode {
 
   return (
     <>
-      <h1>Launcher</h1>
+      <h1>Лаунчер</h1>
       <p className="lede">
-        The new Home screen is a 390 KB app: your apps in a dock and a grid, a clock, and no ads. The app installs it, starts it,
-        and only then switches off the stock launcher. If Home doesn't land on the new one, it puts the old one back.
+        Новый главный экран — приложение на 390 КБ: ваши приложения в доке и сетке, часы и никакой рекламы. Приложение
+        устанавливает его, запускает и только потом отключает штатный лаунчер. Если Home не переключится на новый, старый
+        вернётся на место.
       </p>
 
       <ResultNotice result={result} onDismiss={() => setResult(null)} />
@@ -77,103 +78,103 @@ export function Launcher({ go, markDone }: ScreenProps): ReactNode {
       )}
 
       {!st ? (
-        <Busy text="Asking the TV what owns Home" />
+        <Busy text="Спрашиваем TV, что владеет Home" />
       ) : (
         <>
           <div className="card">
             <div className="card-head">
-              <h2>On this TV now</h2>
-              <StatusChip status={st.isHome ? 'ok' : st.installed ? 'warn' : 'optional'} text={st.isHome ? 'Is Home' : st.installed ? 'Installed, not Home' : 'Not installed'} />
+              <h2>Сейчас на этом TV</h2>
+              <StatusChip status={st.isHome ? 'ok' : st.installed ? 'warn' : 'optional'} text={st.isHome ? 'Это Home' : st.installed ? 'Установлен, не Home' : 'Не установлен'} />
             </div>
             <div className="facts">
               <div>
-                <span>Home screen</span>
-                <b className="mono">{st.homeComponent ?? 'nothing answers'}</b>
+                <span>Главный экран</span>
+                <b className="mono">{st.homeComponent ?? 'ничего не отвечает'}</b>
               </div>
               <div>
-                <span>Stock launcher</span>
-                <b className="mono">{st.stockLauncher ?? 'none found'}</b>
+                <span>Штатный лаунчер</span>
+                <b className="mono">{st.stockLauncher ?? 'не найден'}</b>
               </div>
               <div>
-                <span>CleanYourTV launcher</span>
-                <b>{st.installed ? `version ${st.versionName ?? '?'}` : 'not installed'}</b>
+                <span>Лаунчер CleanYourTV</span>
+                <b>{st.installed ? `версия ${st.versionName ?? '?'}` : 'не установлен'}</b>
               </div>
               <div>
-                <span>In this app</span>
-                <b>{st.bundledApk ? `version ${st.bundledVersion ?? '?'}` : 'no bundled copy'}</b>
+                <span>В этом приложении</span>
+                <b>{st.bundledApk ? `версия ${st.bundledVersion ?? '?'}` : 'нет встроенной копии'}</b>
               </div>
             </div>
           </div>
 
           <div className="card white">
-            <h2>{st.installed ? 'Reinstall or update' : 'Install'}</h2>
+            <h2>{st.installed ? 'Переустановить или обновить' : 'Установить'}</h2>
 
             {st.localApk && (
               <div className="seg" style={{ marginBottom: 14 }}>
                 <button className={apk === 'bundled' ? 'on' : ''} onClick={() => setApk('bundled')} disabled={!st.bundledApk}>
-                  Bundled copy
+                  Встроенная копия
                 </button>
                 <button className={apk === 'local' ? 'on' : ''} onClick={() => setApk('local')}>
-                  Built on this computer
+                  Собрано на этом компьютере
                 </button>
               </div>
             )}
 
             <Toggle
-              label="Switch off the stock launcher"
+              label="Отключить штатный лаунчер"
               hint={
                 st.stockLauncher
-                  ? `Switches off ${st.stockLauncher} once the new launcher is running. Without this, the TV may ask which Home to use.`
-                  : 'The app asks the TV which launcher owns Home and only switches off one it recognises.'
+                  ? `Отключит ${st.stockLauncher}, когда новый лаунчер запустится. Без этого TV может спрашивать, какой Home использовать.`
+                  : 'Приложение спросит TV, какой лаунчер владеет Home, и отключит только тот, который знает.'
               }
               checked={stock === 'auto'}
               onChange={(v) => setStock(v ? 'auto' : 'none')}
             />
             <Toggle
-              label="Input button works from any app"
-              hint="Needed on Google TV once the stock launcher is off. Also powers custom remote buttons (Customise → Advanced)."
+              label="Кнопка Input работает из любого приложения"
+              hint="Нужно на Google TV после отключения штатного лаунчера. Также включает настраиваемые кнопки пульта (Настройка → Дополнительно)."
               checked={inputKey}
               onChange={setInputKey}
             />
             <Toggle
-              label="Fix the Home button"
-              hint="For remotes whose Home button opens All apps, such as Xiaomi sticks. Also routes the Settings button."
+              label="Исправить кнопку Home"
+              hint="Для пультов, у которых Home открывает «Все приложения», например у Xiaomi. Также перенаправляет кнопку Settings."
               checked={homeKey}
               onChange={setHomeKey}
             />
             {(inputKey || homeKey) && (
               <p className="small muted" style={{ marginTop: 6 }}>
-                These are accessibility services. Android switches them off on every reinstall, so the app turns them on again each
-                time.
+                Это службы доступности. Android отключает их при каждой переустановке, поэтому приложение включает их снова
+                каждый раз.
               </p>
             )}
 
             <div className="row" style={{ marginTop: 16 }}>
               <button className="btn primary" disabled={!canInstall || !!busy} onClick={() => install()}>
-                {st.installed ? 'Reinstall launcher' : 'Install launcher'}
+                {st.installed ? 'Переустановить лаунчер' : 'Установить лаунчер'}
               </button>
               {st.isHome && (
                 <button className="btn" disabled={!!busy} onClick={() => setAskStock(true)}>
-                  Give Home back to the stock launcher
+                  Вернуть Home штатному лаунчеру
                 </button>
               )}
               <span className="spacer" />
               {st.isHome && (
                 <button className="btn ghost" onClick={() => go('customise')}>
-                  Next: customise
+                  Далее: настройка
                 </button>
               )}
             </div>
             {!st.bundledApk && !st.localApk && (
               <div className="notice warn" style={{ marginTop: 14, marginBottom: 0 }}>
-                This copy of the app has no launcher bundled. Build it from source below.
+                В этой копии приложения нет встроенного лаунчера. Соберите его из исходников ниже.
               </div>
             )}
           </div>
 
           <div>
             <button className="btn small ghost" onClick={() => setAdvanced(!advanced)} aria-expanded={advanced}>
-              {advanced ? '▾' : '▸'} Advanced: build from source
+              {advanced ? '▾' : '▸'} Дополнительно: сборка из исходников
             </button>
             {advanced && <BuildFromSource onBuilt={refresh} />}
           </div>
@@ -181,19 +182,19 @@ export function Launcher({ go, markDone }: ScreenProps): ReactNode {
       )}
 
       {askReplace && (
-        <Confirm title="Replace the launcher on the TV?" confirmLabel="Replace it" onConfirm={() => install(true)} onCancel={() => setAskReplace(false)}>
-          <p>The launcher on the TV was built on another computer, so Android won't update it in place.</p>
+        <Confirm title="Заменить лаунчер на TV?" confirmLabel="Заменить" onConfirm={() => install(true)} onCancel={() => setAskReplace(false)}>
+          <p>Лаунчер на TV собран на другом компьютере, поэтому Android не сможет обновить его на месте.</p>
           <p>
-            The app can uninstall it and install this one. The tile order and App library choices you made on the TV are lost.
-            Settings you pushed from this app are kept.
+            Приложение может удалить его и установить этот. Порядок плиток и выбранные приложения на TV будут потеряны.
+            Настройки, отправленные из этого приложения, сохранятся.
           </p>
         </Confirm>
       )}
       {askStock && (
-        <Confirm title="Use the stock launcher again?" confirmLabel="Switch back" onConfirm={useStock} onCancel={() => setAskStock(false)}>
+        <Confirm title="Снова использовать штатный лаунчер?" confirmLabel="Вернуть" onConfirm={useStock} onCancel={() => setAskStock(false)}>
           <p>
-            The app switches {st?.stockLauncher ?? 'the stock launcher'} back on and makes it Home. The CleanYourTV launcher stays
-            installed, so you can switch again later.
+            Приложение включит {st?.stockLauncher ?? 'штатный лаунчер'} и сделает его Home. Лаунчер CleanYourTV останется
+            установленным, чтобы можно было переключиться обратно позже.
           </p>
         </Confirm>
       )}
@@ -220,7 +221,7 @@ function BuildFromSource({ onBuilt }: { onBuilt: () => void }): ReactNode {
   async function getAll(): Promise<void> {
     for (const c of checks ?? []) {
       if (c.status === 'ok' || !c.download) continue
-      setBusy(`Downloading ${c.label}`)
+      setBusy(`Загрузка ${c.label}`)
       const r = await window.cytv.download(c.download).catch((e) => ({ ok: false, summary: errorText(e), warnings: [] }))
       if (!r.ok) {
         setResult(r)
@@ -232,7 +233,7 @@ function BuildFromSource({ onBuilt }: { onBuilt: () => void }): ReactNode {
   }
 
   async function build(): Promise<void> {
-    setBusy('Building the launcher. The first build downloads Gradle and takes a few minutes.')
+    setBusy('Собираем лаунчер. Первая сборка скачает Gradle и займёт несколько минут.')
     setResult(null)
     try {
       setResult(await window.cytv.buildLocal())
@@ -248,12 +249,12 @@ function BuildFromSource({ onBuilt }: { onBuilt: () => void }): ReactNode {
   return (
     <div className="card" style={{ marginTop: 8 }}>
       <p className="muted">
-        Build the launcher on this computer from the cleanyourtv source. The app downloads Java 17, the Android SDK and the
-        source into its own folder, about 400 MB. Nothing is installed system-wide.
+        Соберите лаунчер на этом компьютере из исходников cleanyourtv. Приложение скачает Java 17, Android SDK и
+        исходники в свою папку — около 400 МБ. В систему ничего не устанавливается.
       </p>
       <ResultNotice result={result} onDismiss={() => setResult(null)} />
       {!checks ? (
-        <Busy text="Checking" />
+        <Busy text="Проверка" />
       ) : (
         <ul className="checklist" style={{ marginBottom: 14 }}>
           {checks.map((c) => {
@@ -261,7 +262,7 @@ function BuildFromSource({ onBuilt }: { onBuilt: () => void }): ReactNode {
             return (
               <li key={c.id} className="check">
                 <div className="check-title">
-                  <StatusChip status={c.status === 'optional' ? 'missing' : c.status} text={c.status === 'ok' ? 'Ready' : 'Not yet'} />
+                  <StatusChip status={c.status === 'optional' ? 'missing' : c.status} text={c.status === 'ok' ? 'Готово' : 'Ещё нет'} />
                   <span>{c.label}</span>
                 </div>
                 <div className="check-detail">
@@ -281,11 +282,11 @@ function BuildFromSource({ onBuilt }: { onBuilt: () => void }): ReactNode {
       <div className="row" style={{ marginTop: 10 }}>
         {!ready && (
           <button className="btn" onClick={getAll} disabled={!!busy || !checks}>
-            Download what's missing
+            Скачать недостающее
           </button>
         )}
         <button className="btn" onClick={build} disabled={!ready || !!busy}>
-          Build launcher
+          Собрать лаунчер
         </button>
       </div>
     </div>

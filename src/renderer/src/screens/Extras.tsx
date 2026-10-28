@@ -27,9 +27,9 @@ const LANGUAGES: [string, string][] = [
 ]
 
 const SPEEDS: [number, string][] = [
-  [0, 'Off'],
-  [0.5, 'Fast (0.5×)'],
-  [1, 'Normal (1×)']
+  [0, 'Выкл.'],
+  [0.5, 'Быстро (0.5×)'],
+  [1, 'Обычно (1×)']
 ]
 
 export function Extras({ markDone }: ScreenProps): ReactNode {
@@ -62,15 +62,15 @@ export function Extras({ markDone }: ScreenProps): ReactNode {
     }
   }
 
-  if (!sys) return <Busy text="Reading the TV's settings" />
+  if (!sys) return <Busy text="Читаем настройки TV" />
 
   const dnsOn = sys.privateDnsMode === 'hostname' && !!sys.privateDnsHost
   const scale = Number(sys.animationScale === 'null' ? 1 : sys.animationScale)
 
   return (
     <>
-      <h1>TV extras</h1>
-      <p className="lede">Settings outside the launcher that the TV's own menus hide or don't offer.</p>
+      <h1>Дополнительно</h1>
+      <p className="lede">Настройки вне лаунчера, которые меню TV скрывает или не предлагает.</p>
       <ResultNotice result={result} onDismiss={() => setResult(null)} />
       {busy && (
         <div className="notice">
@@ -80,22 +80,22 @@ export function Extras({ markDone }: ScreenProps): ReactNode {
 
       <div className="grid-2">
         <div className="card">
-          <h2>Screensaver</h2>
+          <h2>Заставка</h2>
           <Toggle
-            label="Clock screensaver"
-            hint="A thin clock drifting over a soft glow, so nothing burns in. It comes with the launcher."
+            label="Заставка с часами"
+            hint="Тонкие часы, плавно перемещающиеся по мягкому свечению, чтобы экран не выгорал. Входит в лаунчер."
             checked={sys.screensaverIsClock}
             disabled={!!busy}
-            onChange={(v) => run(v ? 'Setting the Clock screensaver' : 'Setting the TV default screensaver', () => window.cytv.setClockScreensaver(v))}
+            onChange={(v) => run(v ? 'Включаем заставку с часами' : 'Включаем штатную заставку TV', () => window.cytv.setClockScreensaver(v))}
           />
         </div>
 
         <div className="card">
-          <h2>Animation speed</h2>
-          <p className="muted small">How fast menus and apps open, across the whole TV. Off feels snappiest on slow TVs.</p>
+          <h2>Скорость анимации</h2>
+          <p className="muted small">Как быстро открываются меню и приложения на всём TV. На медленных TV «Выкл.» работает быстрее всего.</p>
           <div className="seg">
             {SPEEDS.map(([v, label]) => (
-              <button key={v} className={scale === v ? 'on' : ''} disabled={!!busy} onClick={() => run('Setting animation speed', () => window.cytv.setAnimationScale(v))}>
+              <button key={v} className={scale === v ? 'on' : ''} disabled={!!busy} onClick={() => run('Меняем скорость анимации', () => window.cytv.setAnimationScale(v))}>
                 {label}
               </button>
             ))}
@@ -105,37 +105,39 @@ export function Extras({ markDone }: ScreenProps): ReactNode {
 
       <div className="card">
         <div className="card-head">
-          <h2>Block ads inside apps</h2>
-          <span className={`chip ${dnsOn ? 'ok' : 'optional'}`}>{dnsOn ? `On · ${sys.privateDnsHost}` : 'Off'}</span>
+          <h2>Блокировка рекламы внутри приложений</h2>
+          <span className={`chip ${dnsOn ? 'ok' : 'optional'}`}>{dnsOn ? `Вкл. · ${sys.privateDnsHost}` : 'Выкл.'}</span>
         </div>
         <p className="muted">
-          Points the TV's Private DNS at an ad-blocking resolver, so ad and tracker domains stop resolving in every app. It
-          survives reboots. The trade-off: that resolver sees every DNS query the TV makes. It does not remove YouTube ads.
+          Направляет Private DNS телевизора на резолвер с блокировкой рекламы, поэтому домены рекламы и трекеров перестают
+          разрешаться во всех приложениях. Настройка сохраняется после перезагрузки. Минус: этот резолвер видит все
+          DNS-запросы TV. Рекламу в YouTube это не убирает.
         </p>
         {sys.sdk < 28 ? (
-          <div className="notice warn">Private DNS needs Android 9 or newer. This TV runs API {sys.sdk}.</div>
+          <div className="notice warn">Private DNS требует Android 9 или новее. Этот TV работает на API {sys.sdk}.</div>
         ) : (
           <>
             <div className="row">
-              <button className="btn" disabled={!!busy} onClick={() => run('Turning on AdGuard DNS', () => window.cytv.setPrivateDns(ADGUARD))}>
-                Use AdGuard DNS
+              <button className="btn" disabled={!!busy} onClick={() => run('Включаем AdGuard DNS', () => window.cytv.setPrivateDns(ADGUARD))}>
+                Использовать AdGuard DNS
               </button>
-              <input type="text" value={dnsHost} onChange={(e) => setDnsHost(e.target.value)} placeholder="or another resolver, e.g. dns.nextdns.io" style={{ width: 280 }} />
+              <input type="text" value={dnsHost} onChange={(e) => setDnsHost(e.target.value)} placeholder="или другой резолвер, напр. dns.nextdns.io" style={{ width: 280 }} />
               <button
                 className="btn"
                 disabled={!!busy || !/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(dnsHost.trim())}
-                onClick={() => run('Setting Private DNS', () => window.cytv.setPrivateDns(dnsHost.trim()))}
+                onClick={() => run('Настраиваем Private DNS', () => window.cytv.setPrivateDns(dnsHost.trim()))}
               >
-                Use this one
+                Использовать этот
               </button>
               {dnsOn && (
-                <button className="btn ghost" disabled={!!busy} onClick={() => run('Turning Private DNS off', () => window.cytv.setPrivateDns(null))}>
-                  Turn off
+                <button className="btn ghost" disabled={!!busy} onClick={() => run('Отключаем Private DNS', () => window.cytv.setPrivateDns(null))}>
+                  Отключить
                 </button>
               )}
             </div>
             <p className="small muted" style={{ marginTop: 10 }}>
-              If an app stops playing or the TV says “No internet”, the resolver is down. Turn this off.
+              Если приложение перестало воспроизводить или TV пишет «Нет интернета», значит резолвер недоступен. Отключите
+              эту настройку.
             </p>
           </>
         )}
@@ -143,10 +145,10 @@ export function Extras({ markDone }: ScreenProps): ReactNode {
 
       <div className="grid-2">
         <div className="card">
-          <h2>Launcher language</h2>
+          <h2>Язык лаунчера</h2>
           {sys.sdk >= 33 ? (
             <>
-              <p className="muted small">The launcher follows the TV's language. Android 13 and newer can set it for the launcher alone.</p>
+              <p className="muted small">Лаунчер следует языку TV. Android 13 и новее позволяют задать язык только для лаунчера.</p>
               <div className="row">
                 <select value={lang} onChange={(e) => setLang(e.target.value)}>
                   {LANGUAGES.map(([tag, name]) => (
@@ -155,46 +157,46 @@ export function Extras({ markDone }: ScreenProps): ReactNode {
                     </option>
                   ))}
                 </select>
-                <button className="btn" disabled={!!busy} onClick={() => run('Setting the launcher language', () => window.cytv.setLauncherLocale(lang))}>
-                  Set
+                <button className="btn" disabled={!!busy} onClick={() => run('Меняем язык лаунчера', () => window.cytv.setLauncherLocale(lang))}>
+                  Установить
                 </button>
               </div>
             </>
           ) : (
             <p className="muted small">
-              This TV runs Android API {sys.sdk}. A language for the launcher alone needs Android 13 (API 33). Change the TV's own
-              language in its Settings instead.
+              Этот TV работает на Android API {sys.sdk}. Отдельный язык для лаунчера требует Android 13 (API 33).
+              Измените язык самого TV в его настройках.
             </p>
           )}
         </div>
 
         <div className="card">
-          <h2>Remote</h2>
-          <p className="muted small">Press buttons on the TV from here, handy when the remote is in the other room.</p>
+          <h2>Пульт</h2>
+          <p className="muted small">Нажимайте кнопки на TV отсюда — удобно, если пульт в другой комнате.</p>
           <div className="row" style={{ gap: 24, alignItems: 'flex-start' }}>
-            <div className="remote" role="group" aria-label="Remote control">
+            <div className="remote" role="group" aria-label="Пульт">
               <span />
-              <Key code={19} label="▲" name="Up" />
+              <Key code={19} label="▲" name="Вверх" />
               <span />
-              <Key code={21} label="◀" name="Left" />
+              <Key code={21} label="◀" name="Влево" />
               <Key code={23} label="OK" name="OK" round />
-              <Key code={22} label="▶" name="Right" />
+              <Key code={22} label="▶" name="Вправо" />
               <span />
-              <Key code={20} label="▼" name="Down" />
+              <Key code={20} label="▼" name="Вниз" />
               <span />
             </div>
             <div className="stack" style={{ gap: 6 }}>
               <Key code={3} label="Home" wide />
-              <Key code={4} label="Back" wide />
+              <Key code={4} label="Назад" wide />
               <div className="row" style={{ gap: 6 }}>
-                <Key code={25} label="Vol −" wide />
-                <Key code={24} label="Vol +" wide />
+                <Key code={25} label="Громкость −" wide />
+                <Key code={24} label="Громкость +" wide />
               </div>
             </div>
           </div>
           <div style={{ marginTop: 14 }}>
             <button className="btn small ghost" onClick={() => setAskReboot(true)}>
-              Restart the TV
+              Перезагрузить TV
             </button>
           </div>
         </div>
@@ -202,18 +204,18 @@ export function Extras({ markDone }: ScreenProps): ReactNode {
 
       {askReboot && (
         <Confirm
-          title="Restart the TV?"
-          confirmLabel="Restart"
+          title="Перезагрузить TV?"
+          confirmLabel="Перезагрузить"
           onCancel={() => setAskReboot(false)}
           onConfirm={() => {
             setAskReboot(false)
             window.cytv.reboot().then(
-              () => setResult({ ok: true, summary: 'The TV is restarting. Connect again from Setup once it is back.', warnings: [] }),
+              () => setResult({ ok: true, summary: 'TV перезагружается. Когда он вернётся, подключитесь снова в разделе «Подключение».', warnings: [] }),
               (e) => setResult({ ok: false, summary: errorText(e), warnings: [] })
             )
           }}
         >
-          <p>The connection drops while it restarts. On some TVs, port 5555 stays closed after a restart until you pair again.</p>
+          <p>Во время перезагрузки соединение оборвётся. На некоторых TV порт 5555 остаётся закрытым до повторного сопряжения.</p>
         </Confirm>
       )}
     </>

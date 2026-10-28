@@ -30,9 +30,9 @@ async function ensureDir(): Promise<void> {
     out = await T.sh(TASK, WRITABLE)
   }
   if (!out.includes('writable')) {
-    throw new Error(`This TV won't let the app write the launcher's settings folder (${DIR}). ` +
-      'Press Home on the remote so the launcher opens, then try again. If it still fails, ' +
-      'please report your TV model and Android version on GitHub.')
+    throw new Error(`TV не разрешает приложению записать папку настроек лаунчера (${DIR}). ` +
+      'Нажмите Home на пульте, чтобы лаунчер открылся, и попробуйте снова. Если не помогает, ' +
+      'сообщите модель TV и версию Android на GitHub.')
   }
 }
 
@@ -53,7 +53,7 @@ export async function read(): Promise<TvTheme> {
 }
 
 function checkImageName(img: ImageFile): void {
-  if (!/^[A-Za-z0-9_.-]+$/.test(img.name)) throw new Error(`unsupported wallpaper filename: ${img.name}`)
+  if (!/^[A-Za-z0-9_.-]+$/.test(img.name)) throw new Error(`неподдерживаемое имя файла обоев: ${img.name}`)
 }
 
 /** Drops keys the launcher would ignore anyway, so the file on the TV stays readable. */
@@ -69,7 +69,7 @@ function clean(config: LauncherConfig): LauncherConfig {
 
 export async function apply(req: ThemeApplyRequest): Promise<ApplyResult> {
   const json = Buffer.from(JSON.stringify(clean(req.config), null, 2) + '\n')
-  if (json.length > 64 * 1024) throw new Error('config.json would be over 64 KB; the launcher ignores files that large.')
+  if (json.length > 64 * 1024) throw new Error('config.json получится больше 64 КБ; лаунчер игнорирует такие файлы.')
   await ensureDir()
   await T.pushB64(TASK, json, `${DIR}/config.json`)
   if (req.wallpaper.kind === 'set') {
@@ -87,21 +87,21 @@ export async function apply(req: ThemeApplyRequest): Promise<ApplyResult> {
   // A new revision makes the launcher clear on-TV column and motion choices, even for identical bytes.
   await T.sh(TASK, `printf '%s' '${randomUUID().replace(/-/g, '')}' > ${DIR}/theme_revision`)
   await T.sh(TASK, `${RESTART}; echo applied`)
-  log(TASK, 'ok', 'Theme applied; Home restarted.')
-  return { ok: true, summary: 'Applied. The TV restarted its home screen.', warnings: [] }
+  log(TASK, 'ok', 'Тема применена; Home перезапущен.')
+  return { ok: true, summary: 'Применено. TV перезапустил главный экран.', warnings: [] }
 }
 
 export async function reset(): Promise<ApplyResult> {
   await ensureDir()
   await T.sh(TASK, `rm -f ${DIR}/config.json ${DIR}/wallpaper.jpg ${IMAGE_GLOB}; printf '%s' '${randomUUID().replace(/-/g, '')}' > ${DIR}/theme_revision; ${RESTART}; echo reset`)
-  return { ok: true, summary: 'Back to the built-in look.', warnings: [] }
+  return { ok: true, summary: 'Вернулись к встроенному виду.', warnings: [] }
 }
 
 const PRESET_TEXT: Record<string, [string, string]> = {
-  default: ['Default', 'The built-in look: black, four columns, no wallpaper.'],
-  aurora: ['Aurora', 'A dark aurora wallpaper, teal and violet on navy.'],
-  dussehra: ['Dussehra', 'Festive skin: marigold toran, diya for Wi-Fi, bell for Inputs, petal shower.'],
-  'six-columns': ['Six columns', 'Six smaller tiles per row and one grid row under the dock.']
+  default: ['По умолчанию', 'Встроенный вид: чёрный фон, четыре колонки, без обоев.'],
+  aurora: ['Аврора', 'Тёмные обои с северным сиянием: бирюзовый и фиолетовый на синем.'],
+  dussehra: ['Дуссехра', 'Праздничное оформление: бархатцевый торан, дийя для Wi-Fi, колокол для входов, лепестки.'],
+  'six-columns': ['Шесть колонок', 'Шесть плиток поменьше в ряду и один ряд сетки под доком.']
 }
 
 export function presets(): ThemePreset[] {
@@ -207,6 +207,6 @@ export async function screenshot(): Promise<string> {
   await T.tv().shell(`screencap -p ${f}`, 30000)
   const png = await T.pullB64(f)
   await T.tv().shell(`rm -f ${f}`)
-  if (!png || png.length < 100) throw new Error('The TV returned an empty screenshot. Live TV, HDMI and some streaming apps block capture: press Home and try again.')
+  if (!png || png.length < 100) throw new Error('TV вернул пустой снимок. Live TV, HDMI и некоторые стриминговые приложения блокируют захват: нажмите Home и попробуйте снова.')
   return `data:image/png;base64,${png.toString('base64')}`
 }

@@ -67,7 +67,7 @@ export function parseList(text: string, name = 'list'): ParsedList {
     const code = (hash >= 0 ? line.slice(0, hash) : line).trim()
     const note = hash >= 0 ? line.slice(hash + 1).trim() : ''
     const pkg = code.split(/\s+/)[0]
-    if (!T.PACKAGE_RE.test(pkg)) throw new Error(`${name}:${i + 1}: not a package name: ${pkg}`)
+    if (!T.PACKAGE_RE.test(pkg)) throw new Error(`${name}:${i + 1}: это не имя пакета: ${pkg}`)
     const existing = entries.find((e) => e.pkg === pkg)
     if (existing) { existing.suggested = true; return }
     seen.add(pkg)
@@ -97,7 +97,7 @@ function upstreamLists(): Upstream[] {
         const parsed = parseList(text, `${id}/debloat.txt`)
         out.push({ id, title: parsed.header[0] ?? id, text, parsed })
       } catch (e) {
-        log(TASK, 'warn', `skipping upstream list ${id}: ${(e as Error).message}`)
+        log(TASK, 'warn', `пропускаем список ${id}: ${(e as Error).message}`)
       }
     }
   }
@@ -160,12 +160,12 @@ export function lists(probe: Probe | undefined): DebloatListSummary[] {
     if (family && base && !all.some((l) => l.id === base.id && l.score >= 5)) {
       out.push({
         id: base.id,
-        title: `Inferred for your ${family.label} device — review each package`,
+        title: `Подобрано для вашего устройства ${family.label} — проверьте каждый пакет`,
         score: 0
       })
     }
   }
-  return [{ id: 'custom', title: 'My TV is not listed: pick from packages other TVs disable', score: 0 }, ...out]
+  return [{ id: 'custom', title: 'Моего TV нет в списке: выбрать из пакетов, которые отключают другие TV', score: 0 }, ...out]
 }
 
 /**
@@ -235,21 +235,21 @@ export function loadRecord(path: string): RecoveryRecord {
   try {
     record = JSON.parse(readFileSync(path, 'utf8'))
   } catch (e) {
-    throw new Error(`${path}: not a usable recovery record (${(e as Error).message}). It is left where it is: move it aside deliberately.`)
+    throw new Error(`${path}: файл не похож на запись восстановления (${(e as Error).message}). Он оставлен на месте: уберите его вручную, если он не нужен.`)
   }
   if (record.version !== VERSION || typeof record.packages !== 'object' || !record.packages) {
-    throw new Error(`${path}: unknown recovery record format; move it aside deliberately.`)
+    throw new Error(`${path}: неизвестный формат записи восстановления; уберите файл вручную.`)
   }
   // The record is replayed on the TV's shell: a hand-edited or damaged file stops here.
   for (const [name, state] of Object.entries(record.packages)) {
-    if (!T.PACKAGE_RE.test(name)) throw new Error(`${path}: not a package name: ${name}`)
-    if (!['absent', 'disabled', 'enabled'].includes(state)) throw new Error(`${path}: unknown state for ${name}: ${state}`)
+    if (!T.PACKAGE_RE.test(name)) throw new Error(`${path}: это не имя пакета: ${name}`)
+    if (!['absent', 'disabled', 'enabled'].includes(state)) throw new Error(`${path}: неизвестное состояние ${name}: ${state}`)
   }
-  if (record.home != null && !(typeof record.home === 'string' && HOME_RE.test(record.home))) {
-    throw new Error(`${path}: not a Home component: ${record.home}`)
-  }
-  if (record.settings != null && typeof record.settings !== 'object') throw new Error(`${path}: settings is not a mapping`)
-  if (record.device != null && typeof record.device !== 'string') throw new Error(`${path}: device is not a string`)
+    if (record.home != null && !(typeof record.home === 'string' && HOME_RE.test(record.home))) {
+      throw new Error(`${path}: это не компонент Home: ${record.home}`)
+    }
+    if (record.settings != null && typeof record.settings !== 'object') throw new Error(`${path}: settings — не объект`)
+    if (record.device != null && typeof record.device !== 'string') throw new Error(`${path}: device — не строка`)
   return record
 }
 
@@ -263,8 +263,8 @@ export function findRecord(listPath: string, host: string, device: string | unde
   if (existsSync(path)) {
     const record = loadRecord(path)
     if (record.device && device && record.device !== device) {
-      throw new Error(`The restore record for ${host} was taken from another device (${record.device}); this TV reports ${device}. ` +
-        `Nothing was changed. If the TV at this address really is new, move ${path} aside first.`)
+      throw new Error(`Запись восстановления для ${host} сделана на другом устройстве (${record.device}); этот TV сообщает ${device}. ` +
+        `Ничего не изменено. Если TV по этому адресу действительно новый, сначала уберите ${path} в сторону.`)
     }
     return { path, record }
   }
@@ -276,7 +276,7 @@ export function findRecord(listPath: string, host: string, device: string | unde
       let record: RecoveryRecord
       try { record = loadRecord(old) } catch { continue }
       if (record.list !== list || record.device !== device) continue
-      log(TASK, 'info', `this TV moved from ${record.host} to ${host}; keeping its restore record from ${record.created}`)
+      log(TASK, 'info', `TV переехал с ${record.host} на ${host}; сохраняем запись восстановления от ${record.created}`)
       writeRecord(path, { ...record, host })
       renameSync(old, old + '.moved')
       return { path, record: { ...record, host } }
@@ -326,12 +326,12 @@ export async function saveRecord(listPath: string, host: string, packages: strin
   if (found.record) {
     const record = found.record
     const added = packages.filter((p) => !(p in record.packages))
-    log(TASK, 'info', `keeping the recovery record from ${record.created}: ${path}`)
+    log(TASK, 'info', `сохраняем запись восстановления от ${record.created}: ${path}`)
     if (added.length) {
       const { installed, disabled } = await T.packageSets()
       for (const name of added) record.packages[name] = stateOf(name, installed, disabled)
       writeRecord(path, record)
-      log(TASK, 'info', `added ${added.length} names the list gained since then: ${added.join(', ')}`)
+      log(TASK, 'info', `добавлено ${added.length} пакетов, появившихся в списке с тех пор: ${added.join(', ')}`)
     }
     return record
   }
@@ -357,18 +357,18 @@ export async function saveRecord(listPath: string, host: string, packages: strin
   }
   writeRecord(path, record)
   const already = Object.values(record.packages).filter((s) => s === 'disabled').length
-  log(TASK, 'ok', `recorded ${targets.length} packages (${already} already disabled, left alone by undo) -> ${path}`)
-  log(TASK, 'info', `Home before: ${home ?? 'no component answered'}`)
+  log(TASK, 'ok', `записано ${targets.length} пакетов (${already} уже были отключены и останутся такими при откате) -> ${path}`)
+  log(TASK, 'info', `Home до изменений: ${home ?? 'ни один компонент не ответил'}`)
   return record
 }
 
 /** recovery.py --commands: the batch that puts the recorded states back. */
 export function restoreCommands(listPackages: string[], record: RecoveryRecord | null, stock: string, notes: string[]): string[] {
-  if (!T.PACKAGE_RE.test(stock)) throw new Error(`not a package name: ${stock}`)
+  if (!T.PACKAGE_RE.test(stock)) throw new Error(`это не имя пакета: ${stock}`)
   const cmds: string[] = []
   const resolveStock = `cmd package set-home-activity --user 0 $(${T.HOME_QUERY} ${stock} | tail -n 1)`
   if (!record) {
-    notes.push('No recovery record for this TV and list: enabling every listed package and resetting Home and the animation scales to their defaults.')
+    notes.push('Для этого TV и списка нет записи восстановления: включаем все пакеты из списка и сбрасываем Home и скорость анимаций к значениям по умолчанию.')
     for (const n of listPackages) cmds.push(`pm enable ${n}`)
     cmds.push(`pm enable ${stock}`)
     cmds.push(resolveStock)
@@ -380,7 +380,7 @@ export function restoreCommands(listPackages: string[], record: RecoveryRecord |
   const reEnable = Object.keys(states).filter((n) => states[n] === 'enabled')
   for (const n of reEnable) cmds.push(`pm enable ${n}`)
   const untouched = Object.keys(states).filter((n) => states[n] !== 'enabled')
-  if (untouched.length) notes.push(`Left as they were before cleanup: ${untouched.join(', ')}`)
+  if (untouched.length) notes.push(`Оставлены как до очистки: ${untouched.join(', ')}`)
   // The stock launcher comes back unless the owner had disabled it before cleanup.
   if (states[stock] !== 'disabled' && !reEnable.includes(stock)) cmds.push(`pm enable ${stock}`)
   const home = record.home
@@ -392,7 +392,7 @@ export function restoreCommands(listPackages: string[], record: RecoveryRecord |
     else if (SCALE_RE.test(v)) cmds.push(`settings put global ${k} ${v}`)
   }
   const edited = listPackages.filter((n) => !(n in states))
-  if (edited.length) notes.push(`Not in the record, left alone: ${edited.join(', ')}`)
+  if (edited.length) notes.push(`Нет в записи, оставлены без изменений: ${edited.join(', ')}`)
   cmds.push('pm list packages -d')
   return cmds
 }
@@ -423,7 +423,7 @@ function sourceList(listId: string): { title: string; parsed: ParsedList } {
     return { title: 'Custom list', parsed: { header: ['Custom list made with CleanMyTV from packages other TVs disable.'], entries } }
   }
   const l = upstreamLists().find((u) => u.id === listId)
-  if (!l) throw new Error(`no such list: ${listId}`)
+  if (!l) throw new Error(`нет такого списка: ${listId}`)
   return { title: l.title, parsed: l.parsed }
 }
 
@@ -439,12 +439,12 @@ function savedActive(file: string): string[] {
 
 export async function plan(listId: string): Promise<DebloatPlan> {
   const probe = T.getStatus().probe
-  if (!probe) throw new Error('Connect to a TV first.')
+  if (!probe) throw new Error('Сначала подключитесь к TV.')
   const { title, parsed } = sourceList(listId)
-  const { installed, disabled } = await T.packageSets()
   const file = savedListPath(listId, probe)
   const { path: rpath, record } = findRecord(file, probe.host, probe.device || undefined)
   const common = commonality()
+  const { installed, disabled } = await T.packageSets()
   let entries: DebloatEntry[] = parsed.entries.map((e) => ({
     pkg: e.pkg,
     note: e.note || common.get(e.pkg)?.note || '',
@@ -493,8 +493,8 @@ function writeSavedList(file: string, title: string, header: string[], active: s
 
 export async function apply(req: DebloatApplyRequest): Promise<ApplyResult> {
   const probe = T.getStatus().probe
-  if (!probe) throw new Error('Connect to a TV first.')
-  for (const p of [...req.disable, ...req.enable]) if (!T.PACKAGE_RE.test(p)) throw new Error(`not a package name: ${p}`)
+  if (!probe) throw new Error('Сначала подключитесь к TV.')
+  for (const p of [...req.disable, ...req.enable]) if (!T.PACKAGE_RE.test(p)) throw new Error(`это не имя пакета: ${p}`)
   const { title, parsed } = sourceList(req.listId)
   const host = T.host()
   const warnings: string[] = []
@@ -507,10 +507,10 @@ export async function apply(req: DebloatApplyRequest): Promise<ApplyResult> {
     try { wifi = await T.sh(TASK, 'dumpsys wifi', { quiet: true }) } catch { wifi = '' }
     const owners = wifi.match(/cname=[^ ]*/g) ?? []
     if (!owners.length) {
-      warnings.push(`Skipped ${SETUPWRAITH}: could not check which app owns the saved Wi-Fi networks. Try again, or force it if the TV uses Ethernet.`)
+      warnings.push(`Пропущен ${SETUPWRAITH}: не удалось проверить, какому приложению принадлежат сохранённые Wi-Fi сети. Повторите попытку или принудительно отключите, если TV подключён по Ethernet.`)
       pkgs = pkgs.filter((p) => p !== SETUPWRAITH)
     } else if (owners.some((o) => o.includes('setupwraith'))) {
-      warnings.push(`Skipped ${SETUPWRAITH}: the saved Wi-Fi network belongs to it, and disabling it would delete that network and take the TV off Wi-Fi. On the TV, forget the network and join it again in Settings > Network & Internet, then apply again.`)
+      warnings.push(`Пропущен ${SETUPWRAITH}: сохранённая Wi-Fi сеть принадлежит ему, и отключение удалит эту сеть и лишит TV Wi-Fi. На TV забудьте сеть и подключитесь к ней заново в Настройках > Сеть и интернет, затем примените снова.`)
       pkgs = pkgs.filter((p) => p !== SETUPWRAITH)
     }
   }
@@ -522,7 +522,7 @@ export async function apply(req: DebloatApplyRequest): Promise<ApplyResult> {
     const claims = await T.homeClaimants()
     const others = claims.filter((c) => c !== homePkg && !pkgs.includes(c) && !NOT_LAUNCHERS.includes(c))
     if (!others.length) {
-      warnings.push(`Skipped ${homePkg}: it owns Home and nothing else that can answer Home stays enabled. Install the new launcher first (Launcher step), then apply again.`)
+      warnings.push(`Пропущен ${homePkg}: он владеет Home, и больше некому отвечать на Home. Сначала установите новый лаунчер (шаг «Лаунчер»), затем примените снова.`)
       pkgs = pkgs.filter((p) => p !== homePkg)
     }
   }
@@ -534,25 +534,25 @@ export async function apply(req: DebloatApplyRequest): Promise<ApplyResult> {
   const file = savedListPath(req.listId, probe)
   const active = [...new Set([...savedActive(file), ...req.disable])].filter((p) => !req.enable.includes(p))
   writeSavedList(file, title, parsed.header, active, parsed.entries)
-  log(TASK, 'info', `list saved to ${file}`)
+  log(TASK, 'info', `список сохранён в ${file}`)
   await saveRecord(file, host, active, probe.device || undefined)
 
   let done = 0
   for (const p of pkgs) {
     const out = await T.sh(TASK, `pm disable-user --user 0 ${p}`)
     if (/disabled/.test(out)) done++
-    else warnings.push(`${p}: ${out.trim() || 'no answer'}`)
+    else warnings.push(`${p}: ${out.trim() || 'нет ответа'}`)
   }
   let enabled = 0
   for (const p of req.enable) {
     const out = await T.sh(TASK, `pm enable ${p}`)
     if (/enabled/.test(out)) enabled++
-    else warnings.push(`${p}: ${out.trim() || 'no answer'}`)
+    else warnings.push(`${p}: ${out.trim() || 'нет ответа'}`)
   }
   if (adbSecure === '0') {
-    warnings.push('This TV reports ro.adb.secure=0: network debugging accepts any device on your network without the Allow prompt. Switch debugging off when you are done (Finish step).')
+    warnings.push('Этот TV сообщает ro.adb.secure=0: отладка по сети принимает любое устройство в вашей сети без запроса разрешения. Выключите отладку после работы (шаг «Завершение»).')
   }
-  const summary = `Disabled ${done} of ${pkgs.length} package${pkgs.length === 1 ? '' : 's'}` + (req.enable.length ? `, switched ${enabled} back on.` : '.')
+  const summary = `Отключено ${done} из ${pkgs.length} пакетов` + (req.enable.length ? `, включено обратно: ${enabled}.` : '.')
   log(TASK, 'ok', summary)
   return { ok: done === pkgs.length && enabled === req.enable.length, summary, warnings }
 }
@@ -564,7 +564,7 @@ async function stockFallback(): Promise<string> {
 
 export async function restore(listId: string): Promise<ApplyResult> {
   const probe = T.getStatus().probe
-  if (!probe) throw new Error('Connect to a TV first.')
+  if (!probe) throw new Error('Сначала подключитесь к TV.')
   const file = savedListPath(listId, probe)
   const { record } = findRecord(file, probe.host, probe.device || undefined)
   const listPkgs = existsSync(file) ? savedActive(file) : sourceList(listId).parsed.entries.filter((e) => e.suggested).map((e) => e.pkg)
@@ -574,8 +574,8 @@ export async function restore(listId: string): Promise<ApplyResult> {
   await T.batch('restore', cmds)
   const home = await T.homeComponent()
   const summary = record
-    ? `Restored the state recorded on ${record.created}. Home is ${home ?? 'not set'}.`
-    : `Enabled every package in the list. Home is ${home ?? 'not set'}.`
+    ? `Состояние восстановлено по записи от ${record.created}. Home: ${home ?? 'не задан'}.`
+    : `Все пакеты из списка включены. Home: ${home ?? 'не задан'}.`
   log('restore', 'ok', summary)
   return { ok: true, summary, warnings: notes }
 }

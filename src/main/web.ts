@@ -7,9 +7,9 @@ const MAX_BYTES = 25 * 1024 * 1024
 
 function allowed(url: string): URL {
   let u: URL
-  try { u = new URL(url) } catch { throw new Error('not a web address') }
+  try { u = new URL(url) } catch { throw new Error('это не веб-адрес') }
   if (u.protocol !== 'https:' || !HOSTS.has(u.hostname) || u.username || u.password || u.port) {
-    throw new Error(`the app only downloads backgrounds from ${[...HOSTS].join(', ')}`)
+    throw new Error(`приложение скачивает обои только с ${[...HOSTS].join(', ')}`)
   }
   return u
 }
@@ -23,10 +23,10 @@ export async function get(url: string, fetchImpl: typeof fetch = fetch): Promise
       u = allowed(new URL(next, u).href)
       continue
     }
-    if (Number(res.headers.get('content-length') ?? 0) > MAX_BYTES) throw new Error('the download is too large')
+    if (Number(res.headers.get('content-length') ?? 0) > MAX_BYTES) throw new Error('файл слишком большой')
     const body = Buffer.from(await res.arrayBuffer())
-    if (body.length > MAX_BYTES) throw new Error('the download is too large')
+    if (body.length > MAX_BYTES) throw new Error('файл слишком большой')
     return { status: res.status, contentType: res.headers.get('content-type') ?? '', base64: body.toString('base64') }
   }
-  throw new Error('too many redirects')
+  throw new Error('слишком много перенаправлений')
 }

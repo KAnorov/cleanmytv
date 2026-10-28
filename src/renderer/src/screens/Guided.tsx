@@ -27,13 +27,13 @@ export default function Guided({ go, markDone }: ScreenProps): React.ReactElemen
       const lists = await window.cytv.lists()
       const best = lists.reduce((a, b) => (b.score > a.score ? b : a))
       if (best.score <= 0) {
-        setPhase({ t: 'failed', message: 'No list matches this TV closely. Use Clean up to pick one by hand — the guided run needs a matching list to be safe.' })
+        setPhase({ t: 'failed', message: 'Нет списка, близко подходящего к этому TV. Выберите вручную в разделе «Очистка» — для безопасного автоматического запуска нужен подходящий список.' })
         return
       }
       const plan = await window.cytv.plan(best.id)
       const suggested = plan.entries.filter((e) => e.suggested).map((e) => e.pkg)
       if (suggested.length === 0) {
-        setPhase({ t: 'failed', message: 'The matching list has no suggested packages. Use Clean up to choose by hand.' })
+        setPhase({ t: 'failed', message: 'В подходящем списке нет рекомендуемых пакетов. Выберите вручную в разделе «Очистка».' })
         return
       }
       setPhase({ t: 'ready', plan, disable: suggested })
@@ -45,11 +45,11 @@ export default function Guided({ go, markDone }: ScreenProps): React.ReactElemen
   async function run(skipDebloat: boolean): Promise<void> {
     const p = phase
     if (p.t !== 'ready') return
-    setPhase({ t: 'run', step: 'Preparing' })
+    setPhase({ t: 'run', step: 'Подготовка' })
     const notes: string[] = []
     try {
       if (!skipDebloat) {
-        setPhase({ t: 'run', step: `Disabling ${p.disable.length} packages from "${p.plan.title}"` })
+        setPhase({ t: 'run', step: `Отключаем ${p.disable.length} пакетов из «${p.plan.title}»` })
         const r = await window.cytv.applyDebloat({
           listId: p.plan.listId,
           disable: p.disable,
@@ -58,15 +58,15 @@ export default function Guided({ go, markDone }: ScreenProps): React.ReactElemen
           forceSetupwraith: true
         })
         if (!r.ok) throw new Error(r.summary)
-        notes.push(`Cleaned up: ${p.disable.length} packages off (${r.warnings.length} warnings)`)
+        notes.push(`Очищено: отключено ${p.disable.length} пакетов (предупреждений: ${r.warnings.length})`)
         if (alive.current) markDone('debloat')
       } else {
-        notes.push('Clean up skipped')
+        notes.push('Очистка пропущена')
       }
 
       const before = await window.cytv.launcherStatus()
       if (!before.isHome) {
-        setPhase({ t: 'run', step: 'Installing the launcher' })
+        setPhase({ t: 'run', step: 'Устанавливаем лаунчер' })
         const r = await window.cytv.install({
           apk: 'bundled',
           stockLauncher: before.stockLauncher ?? 'auto',
@@ -75,50 +75,50 @@ export default function Guided({ go, markDone }: ScreenProps): React.ReactElemen
           replaceIncompatible: false
         })
         if (!r.ok) throw new Error(r.summary)
-        notes.push('Launcher installed and set as Home')
+        notes.push('Лаунчер установлен и назначен Home')
         if (alive.current) markDone('launcher')
       } else {
-        notes.push('Launcher already Home — left as it was')
+        notes.push('Лаунчер уже Home — оставлен как есть')
       }
 
       setPhase({ t: 'done', result: { ok: true, summary: notes.join(' · '), warnings: [] }, customised: true })
     } catch (e) {
-      notes.push('Stopped: ' + errorText(e))
+      notes.push('Остановлено: ' + errorText(e))
       setPhase({ t: 'failed', message: notes.join(' · ') })
     }
   }
 
   return (
     <>
-      <h1>Clean &amp; launch</h1>
+      <h1>Очистка и запуск</h1>
       <p className="muted">
-        The one-button path: the best-matching list for your TV, its suggested packages off, the clean
-        launcher installed and set as Home — then you land on Customise. Nothing is uninstalled and
-        every step stays open in the sidebar if you want to go slower.
+        Путь одной кнопкой: лучший список для вашего TV, отключение рекомендованных пакетов, установка чистого
+        лаунчера и назначение его Home — после чего вы попадаете в «Настройку». Ничего не удаляется, а все шаги
+        остаются в боковом меню, если хотите идти медленнее.
       </p>
 
-      {phase.t === 'plan' && <Busy text="Reading your TV and picking the matching list" />}
+      {phase.t === 'plan' && <Busy text="Читаем TV и подбираем подходящий список" />}
 
       {phase.t === 'ready' && (
         <div className="stack" style={{ gap: 16 }}>
           <div className="card">
-            <h2 style={{ margin: 0 }}>Ready to run</h2>
+            <h2 style={{ margin: 0 }}>Готово к запуску</h2>
             <p style={{ margin: '8px 0' }}>
-              List: <b>{phase.plan.title}</b> — the closest match for your TV.
+              Список: <b>{phase.plan.title}</b> — ближайшее совпадение для вашего TV.
             </p>
             <p style={{ margin: '8px 0' }}>
-              Will disable <b>{phase.disable.length} packages</b> (the list's suggested set — the same
-              defaults Clean up pre-ticks), then install the bundled launcher and hand Home to it.
+              Будет отключено <b>{phase.disable.length} пакетов</b> (рекомендованный набор списка — те же
+              значения, что отмечает «Очистка»), затем установится встроенный лаунчер и получит Home.
             </p>
             <p className="muted small" style={{ margin: 0 }}>
-              Restore puts every package back exactly as it is now; the launcher can go back to stock
-              from the Launcher step at any time.
+              «Восстановить» вернёт все пакеты в текущее состояние; лаунчер можно вернуть к штатному
+              в любой момент на шаге «Лаунчер».
             </p>
           </div>
           <div className="row">
-            <button className="btn primary" onClick={() => void run(false)}>Clean &amp; launch</button>
-            <button className="btn" onClick={() => void run(true)}>Launcher only (skip clean up)</button>
-            <button className="btn ghost" onClick={() => go('debloat')}>Let me pick by hand instead</button>
+            <button className="btn primary" onClick={() => void run(false)}>Очистить и запустить</button>
+            <button className="btn" onClick={() => void run(true)}>Только лаунчер (без очистки)</button>
+            <button className="btn ghost" onClick={() => go('debloat')}>Выберу вручную</button>
           </div>
         </div>
       )}
@@ -128,12 +128,12 @@ export default function Guided({ go, markDone }: ScreenProps): React.ReactElemen
       {phase.t === 'done' && (
         <div className="stack" style={{ gap: 16 }}>
           <div className="card">
-            <StatusChip status="ok" text="Done" />
+            <StatusChip status="ok" text="Готово" />
             <p style={{ margin: '8px 0 0' }}>{phase.result.summary}</p>
           </div>
           <div className="row">
-            <button className="btn primary" onClick={() => go('customise')}>Customise my home screen</button>
-            <button className="btn ghost" onClick={() => go('finish')}>Finish (close the debug port)</button>
+            <button className="btn primary" onClick={() => go('customise')}>Настроить главный экран</button>
+            <button className="btn ghost" onClick={() => go('finish')}>Завершить (закрыть порт отладки)</button>
           </div>
         </div>
       )}
@@ -142,8 +142,8 @@ export default function Guided({ go, markDone }: ScreenProps): React.ReactElemen
         <div className="stack" style={{ gap: 16 }}>
           <div className="notice error">{phase.message}</div>
           <div className="row">
-            <button className="btn" onClick={() => { setPhase({ t: 'plan' }); void prepare() }}>Try again</button>
-            <button className="btn ghost" onClick={() => go('debloat')}>Use the step-by-step screens</button>
+            <button className="btn" onClick={() => { setPhase({ t: 'plan' }); void prepare() }}>Попробовать снова</button>
+            <button className="btn ghost" onClick={() => go('debloat')}>Перейти к пошаговым экранам</button>
           </div>
         </div>
       )}

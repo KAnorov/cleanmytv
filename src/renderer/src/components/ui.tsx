@@ -26,11 +26,11 @@ export function Toggle(props: {
 }
 
 const chipText: Record<CheckStatus, string> = {
-  ok: 'Ready',
-  missing: 'Needed',
-  warn: 'Check',
-  optional: 'Optional',
-  checking: 'Checking'
+  ok: 'Готово',
+  missing: 'Требуется',
+  warn: 'Проверить',
+  optional: 'По желанию',
+  checking: 'Проверка'
 }
 
 export function StatusChip({ status, text }: { status: CheckStatus; text?: string }): ReactNode {
@@ -67,7 +67,7 @@ export function Confirm(props: {
       <div>{props.children}</div>
       <div className="modal-actions">
         <button className="btn ghost" onClick={props.onCancel}>
-          Cancel
+          Отмена
         </button>
         <button className="btn primary" onClick={props.onConfirm} autoFocus>
           {props.confirmLabel}
@@ -85,7 +85,7 @@ export function ResultNotice({ result, onDismiss }: { result: ApplyResult | null
       <div className="row between">
         <b>{result.summary}</b>
         {onDismiss && (
-          <button className="icon-btn" onClick={onDismiss} aria-label="Dismiss">
+          <button className="icon-btn" onClick={onDismiss} aria-label="Закрыть">
             ✕
           </button>
         )}
@@ -161,10 +161,10 @@ export function NotConnected({ onGo }: { onGo: () => void }): ReactNode {
   return (
     <div className="empty">
       <div className="tv-glyph" />
-      <h2>Connect to your TV first</h2>
-      <p className="muted">This step reads and changes things on the TV, so it needs the connection from Setup.</p>
+      <h2>Сначала подключите TV</h2>
+      <p className="muted">Этот шаг читает и меняет данные на TV, поэтому нужно подключение из раздела «Подключение».</p>
       <button className="btn primary" onClick={onGo}>
-        Go to Setup
+        Перейти к подключению
       </button>
     </div>
   )

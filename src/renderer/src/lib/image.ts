@@ -17,7 +17,7 @@ export async function prepareWallpaper(file: File, name?: string): Promise<Prepa
   canvas.width = TV_W
   canvas.height = TV_H
   const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('This computer could not draw the picture.')
+  if (!ctx) throw new Error('Не удалось нарисовать картинку на этом компьютере.')
   const scale = Math.max(TV_W / bitmap.width, TV_H / bitmap.height)
   const w = bitmap.width * scale
   const h = bitmap.height * scale

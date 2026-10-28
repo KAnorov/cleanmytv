@@ -29,13 +29,13 @@ export function LogDrawer(): ReactNode {
   return (
     <div className="log">
       <button className="log-bar" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <span>{open ? '▾' : '▸'} Activity</span>
-        <span className="last">{last ? (last.level === 'cmd' ? `$ ${last.text}` : last.text) : 'Nothing has run yet.'}</span>
-        {lines.length > 0 && <span className="muted small">{lines.length} lines</span>}
+        <span>{open ? '▾' : '▸'} Активность</span>
+        <span className="last">{last ? (last.level === 'cmd' ? `$ ${last.text}` : last.text) : 'Пока ничего не выполнялось.'}</span>
+        {lines.length > 0 && <span className="muted small">{lines.length} строк</span>}
       </button>
       {open && (
         <div className="log-body" ref={body}>
-          {lines.length === 0 && <p className="muted">Commands sent to the TV show up here.</p>}
+          {lines.length === 0 && <p className="muted">Здесь появляются команды, отправленные на TV.</p>}
           {lines.map((l, i) => (
             <div key={i} className={`log-line ${l.level}`}>
               <span className="t">{new Date(l.time).toLocaleTimeString([], { hour12: false })}</span>
@@ -46,7 +46,7 @@ export function LogDrawer(): ReactNode {
           {lines.length > 0 && (
             <div className="row" style={{ marginTop: 8 }}>
               <button className="btn small ghost" onClick={() => setLines([])}>
-                Clear
+                Очистить
               </button>
               <button
                 className="btn small ghost"
@@ -56,7 +56,7 @@ export function LogDrawer(): ReactNode {
                   )
                 }
               >
-                Copy all
+                Копировать всё
               </button>
             </div>
           )}

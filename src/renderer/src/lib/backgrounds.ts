@@ -39,18 +39,18 @@ export function bingName(img: BingImage): string {
 
 async function toPrepared(url: string, name: string): Promise<PreparedImage> {
   const res = await get(url)
-  if (!res.ok) throw new Error(`download failed (${res.status})`)
-  if (!res.type.startsWith('image/')) throw new Error('the source did not return a picture')
+  if (!res.ok) throw new Error(`не удалось скачать (${res.status})`)
+  if (!res.type.startsWith('image/')) throw new Error('источник вернул не картинку')
   return prepareWallpaper(new File([res.bytes], name, { type: res.type }), name)
 }
 
 /** Fetches today's (or the newest available) Bing daily image, prepared for the TV. */
 export async function fetchBingDaily(market = 'en-US'): Promise<PreparedImage> {
   const res = await get(`${BING_BASE}/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=${market}`)
-  if (!res.ok) throw new Error(`Bing daily is unavailable (${res.status})`)
+  if (!res.ok) throw new Error(`картинка дня Bing недоступна (${res.status})`)
   const data = json<{ images?: BingImage[] }>(res.bytes)
   const img = data.images?.[0]
-  if (!img?.urlbase) throw new Error('Bing daily returned no picture today.')
+  if (!img?.urlbase) throw new Error('Bing не вернул картинку на сегодня.')
   return toPrepared(bingFileUrl(img), bingName(img))
 }
 
@@ -64,8 +64,8 @@ export async function tmdbBackdropPaths(listId: number, apiKey: string, maxPages
   for (let page = 1; page <= maxPages; page++) {
     const res = await get(`${TMDB_BASE}/list/${listId}?api_key=${encodeURIComponent(apiKey)}&page=${page}`)
     if (!res.ok) {
-      if (res.status === 404) throw new Error('that TMDB list does not exist.')
-      throw new Error(`TMDB is unavailable (${res.status}).`)
+      if (res.status === 404) throw new Error('такого списка TMDB не существует.')
+      throw new Error(`TMDB недоступен (${res.status}).`)
     }
     const data = json<{ items?: Array<{ backdrop_path?: string | null }>; total_pages?: number }>(res.bytes)
     for (const it of data.items ?? []) if (it.backdrop_path) out.push(it.backdrop_path)

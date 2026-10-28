@@ -70,7 +70,7 @@ export function Setup({ status, go }: ScreenProps): ReactNode {
     setConnectError(null)
     try {
       const s = await window.cytv.connect(h.trim())
-      if (s.state === 'error' && !s.needsPairing) setConnectError(s.error ?? 'Could not connect.')
+      if (s.state === 'error' && !s.needsPairing) setConnectError(s.error ?? 'Не удалось подключиться.')
     } catch (e) {
       setConnectError(errorText(e))
     }
@@ -83,10 +83,11 @@ export function Setup({ status, go }: ScreenProps): ReactNode {
 
   return (
     <>
-      <h1>Set up</h1>
+      <h1>Подключение</h1>
       <p className="lede">
-        This app talks to the TV over your Wi-Fi. You don't need Python, Java or Android tools to clean the TV and install
-        the launcher. The optional items are only for building the launcher yourself or pairing some Google TVs.
+        Приложение связывается с TV по вашему Wi-Fi. Для очистки TV и установки лаунчера не нужны Python, Java или
+        Android-инструменты. Необязательные компоненты нужны только для самостоятельной сборки лаунчера или сопряжения
+        некоторых Google TV.
       </p>
 
       {status.state === 'waiting-auth' && <WaitingForAllow />}
@@ -101,15 +102,15 @@ export function Setup({ status, go }: ScreenProps): ReactNode {
                   {status.probe.manufacturer} {status.probe.model}
                 </h2>
                 <div className="row">
-                  <StatusChip status="ok" text="Connected" />
+                  <StatusChip status="ok" text="Подключено" />
                   <button className="btn small ghost" onClick={() => window.cytv.disconnect()}>
-                    Disconnect
+                    Отключить
                   </button>
                 </div>
               </div>
               <div className="facts">
                 <div>
-                  <span>Address</span>
+                  <span>Адрес</span>
                   <b>{status.host}</b>
                 </div>
                 <div>
@@ -119,11 +120,11 @@ export function Setup({ status, go }: ScreenProps): ReactNode {
                   </b>
                 </div>
                 <div>
-                  <span>Device</span>
+                  <span>Устройство</span>
                   <b>{status.probe.device}</b>
                 </div>
                 <div>
-                  <span>Build</span>
+                  <span>Сборка</span>
                   <b className="mono">{status.probe.build}</b>
                 </div>
               </div>
@@ -131,76 +132,74 @@ export function Setup({ status, go }: ScreenProps): ReactNode {
           </div>
           {status.probe.adbSecure === '0' && (
             <div className="notice warn" style={{ marginTop: 16, marginBottom: 0 }}>
-              This TV reports <code>ro.adb.secure=0</code>. Any device on your network can reach its debug port without the
-              Allow prompt. Close it when you're done: the Finish step walks you through it.
+              Этот TV сообщает <code>ro.adb.secure=0</code>. Любое устройство в вашей сети может подключиться к порту
+              отладки без запроса разрешения. Закройте его после работы: шаг «Завершение» подскажет как.
             </div>
           )}
           {status.probe.sdk > 0 && status.probe.sdk < 19 && (
             <div className="notice warn" style={{ marginTop: 16, marginBottom: 0 }}>
-              This TV reports Android {status.probe.release} (API {status.probe.sdk}). The bundled launcher needs Android
-              4.4 (API 19) or newer, so the Launcher step will likely refuse to install here. Cleanup stays available and
-              reversible (nothing is uninstalled), but check the known-devices table first, and skip the Launcher step on
-              a model listed as unsupported.
+              Этот TV работает на Android {status.probe.release} (API {status.probe.sdk}). Встроенному лаунчеру нужен
+              Android 4.4 (API 19) или новее, поэтому шаг «Лаунчер», скорее всего, откажется устанавливаться. Очистка
+              остаётся доступной и обратимой (ничего не удаляется), но сначала проверьте таблицу известных устройств и
+              пропустите шаг «Лаунчер» для моделей, отмеченных как неподдерживаемые.
             </div>
           )}
           <div className="row" style={{ marginTop: 16 }}>
             <button className="btn primary" onClick={() => go('debloat')}>
-              Next: clean up the TV
+              Далее: очистка TV
             </button>
           </div>
         </div>
       ) : (
         <div className="grid-2">
           <div className="card">
-            <h2>1. On the TV</h2>
+            <h2>1. На телевизоре</h2>
             <ol className="guide">
               <li>
                 <span>
-                  Open <span className="path">Settings<i>→</i>Device Preferences<i>→</i>About</span>. On some Google TVs it is{' '}
-                  <span className="path">Settings<i>→</i>System<i>→</i>About</span>.
+                  Откройте <span className="path">Настройки<i>→</i>Настройки устройства<i>→</i>О телевизоре</span>. На
+                  некоторых Google TV это <span className="path">Настройки<i>→</i>Система<i>→</i>О телевизоре</span>.
                 </span>
               </li>
               <li>
                 <span>
-                  Scroll to <b>Build</b> (or <b>Android TV OS build</b>) and press OK on it seven times. The TV says you are now a
-                  developer.
+                  Прокрутите до пункта <b>Сборка</b> (или <b>Сборка Android TV OS</b>) и нажмите на нём OK семь раз. TV
+                  сообщит, что вы стали разработчиком.
                 </span>
+              </li>
+              <li>
+                <span>Вернитесь на экран назад и откройте <b>Для разработчиков</b>.</span>
               </li>
               <li>
                 <span>
-                  Go back one screen and open <b>Developer options</b>.
+                  Включите <b>Отладку по USB</b>. Если есть также <b>Отладка по сети</b> или <b>Отладка ADB</b>,
+                  включите и её.
                 </span>
               </li>
               <li>
-                <span>
-                  Turn on <b>USB debugging</b>. If you also see <b>Network debugging</b> or <b>ADB debugging</b>, turn that on
-                  too.
-                </span>
-              </li>
-              <li>
-                <span>Keep the TV on and on the same Wi-Fi as this computer.</span>
+                <span>Оставьте TV включённым и подключённым к той же Wi-Fi сети, что и компьютер.</span>
               </li>
             </ol>
           </div>
 
           <div className="card">
-            <h2>2. Find your TV</h2>
-            <p className="muted small">The scan looks for TVs with port 5555 open on your network. It takes a few seconds.</p>
+            <h2>2. Найдите свой TV</h2>
+            <p className="muted small">Сканирование ищет TV с открытым портом 5555 в вашей сети. Это занимает несколько секунд.</p>
             {status.moved && status.error && (
               <div className="notice warn" style={{ marginBottom: 12 }}>
-                {status.error} Only connect to an address you recognise as your TV.
+                {status.error} Подключайтесь только к адресу, который вы узнаёте как свой TV.
               </div>
             )}
             <div className="row" style={{ marginBottom: 12 }}>
               <button className="btn" onClick={scan} disabled={scanning || busy}>
-                {scanning ? 'Scanning…' : hits ? 'Scan again' : 'Scan the network'}
+                {scanning ? 'Сканирование…' : hits ? 'Сканировать снова' : 'Сканировать сеть'}
               </button>
               {scanning && <span className="spinner" />}
             </div>
             {hits && hits.length === 0 && (
               <div className="notice warn">
-                No TV answered. Check that USB debugging is on and the TV is on this Wi-Fi, or type its address below (TV
-                Settings → Network → your network).
+                Ни один TV не ответил. Проверьте, что отладка по USB включена, а TV подключён к этой Wi-Fi сети, или
+                введите адрес ниже (Настройки TV → Сеть → ваша сеть).
               </div>
             )}
             {hits && hits.length > 0 && (
@@ -214,7 +213,7 @@ export function Setup({ status, go }: ScreenProps): ReactNode {
                     >
                       <span className="dot ok" />
                       <span style={{ flex: 1 }}>{h.host}</span>
-                      <span className="muted small">port 5555 open</span>
+                      <span className="muted small">порт 5555 открыт</span>
                     </button>
                   </li>
                 ))}
@@ -228,14 +227,14 @@ export function Setup({ status, go }: ScreenProps): ReactNode {
               }}
             >
               <label className="field">
-                TV address
+                Адрес TV
                 <input type="text" value={host} onChange={(e) => setHost(e.target.value)} placeholder="192.168.1.50" />
               </label>
               <div className="row">
                 <button className="btn primary" type="submit" disabled={busy || !IP_RE.test(host.trim())}>
-                  {status.state === 'connecting' ? 'Connecting…' : 'Connect'}
+                  {status.state === 'connecting' ? 'Подключение…' : 'Подключить'}
                 </button>
-                {status.state === 'connecting' && <Busy text="Opening the connection" />}
+                {status.state === 'connecting' && <Busy text="Открываем соединение" />}
               </div>
             </form>
             {connectError && (
@@ -251,23 +250,23 @@ export function Setup({ status, go }: ScreenProps): ReactNode {
 
       <div className="card white" style={{ marginTop: 8 }}>
         <div className="card-head">
-          <h2>What's ready</h2>
+          <h2>Что готово</h2>
           <button className="btn small ghost" onClick={refreshChecks}>
-            Check again
+            Проверить снова
           </button>
         </div>
         <ResultNotice result={downloadResult} onDismiss={() => setDownloadResult(null)} />
         {!checks ? (
-          <Busy text="Checking this computer" />
+          <Busy text="Проверка компьютера" />
         ) : (
           <>
             <Checklist items={required} progress={progress} downloading={downloading} onDownload={download} />
             {optional.length > 0 && (
               <>
-                <h3 style={{ marginTop: 22 }}>Optional</h3>
+                <h3 style={{ marginTop: 22 }}>По желанию</h3>
                 <p className="muted small">
-                  Only needed to build the launcher from source (Launcher step, Advanced) or to pair a TV that asks for a code.
-                  Each one downloads into this app's own folder.
+                  Нужно только для сборки лаунчера из исходников (шаг «Лаунчер», «Дополнительно») или для сопряжения TV,
+                  который запрашивает код. Всё скачивается в папку этого приложения.
                 </p>
                 <Checklist items={optional} progress={progress} downloading={downloading} onDownload={download} />
               </>
@@ -304,7 +303,7 @@ function Checklist(props: {
             <div className="check-actions">
               {c.download && (
                 <button className="btn small" onClick={() => props.onDownload(c.download!)} disabled={active}>
-                  {active ? 'Downloading…' : 'Download'}
+                  {active ? 'Загрузка…' : 'Скачать'}
                 </button>
               )}
             </div>
@@ -319,14 +318,14 @@ function DownloadBar({ p }: { p: DownloadProgress }): ReactNode {
   const pct = p.total > 0 ? Math.min(100, (p.received / p.total) * 100) : 0
   const label =
     p.phase === 'download'
-      ? `${mb(p.received)} of ${p.total ? mb(p.total) : '?'}`
+      ? `${mb(p.received)} из ${p.total ? mb(p.total) : '?'}`
       : p.phase === 'extract'
-        ? 'Unpacking'
+        ? 'Распаковка'
         : p.phase === 'install'
-          ? p.message ?? 'Installing'
+          ? p.message ?? 'Установка'
           : p.phase === 'error'
-            ? p.message ?? 'Failed'
-            : 'Done'
+            ? p.message ?? 'Ошибка'
+            : 'Готово'
   return (
     <div>
       <div className={`progress${p.phase === 'download' && p.total ? '' : ' indeterminate'}`}>
@@ -343,19 +342,19 @@ function WaitingForAllow(): ReactNode {
   return (
     <div className="waiting" role="status">
       <div className="allow-mock" aria-hidden>
-        <b>Allow USB debugging?</b>
-        <div className="small">RSA key fingerprint…</div>
-        <div className="small">☑ Always allow from this computer</div>
-        <div className="am-btn">Cancel</div>
-        <div className="am-btn focus">Allow</div>
+        <b>Разрешить отладку по USB?</b>
+        <div className="small">Отпечаток ключа RSA…</div>
+        <div className="small">☑ Всегда разрешать с этого компьютера</div>
+        <div className="am-btn">Отмена</div>
+        <div className="am-btn focus">Разрешить</div>
       </div>
       <div>
-        <div className="big">Look at the TV and choose Allow.</div>
+        <div className="big">Посмотрите на TV и выберите «Разрешить».</div>
         <p className="muted" style={{ marginTop: 6 }}>
-          Tick <b>Always allow from this computer</b> first, so it doesn't ask again. If nothing shows, press Home on the remote:
-          the prompt can hide behind a running app.
+          Сначала поставьте галочку <b>Всегда разрешать с этого компьютера</b>, чтобы запрос не появлялся снова. Если
+          ничего не видно, нажмите Home на пульте: запрос может скрываться за запущенным приложением.
         </p>
-        <Busy text="Waiting for the TV" />
+        <Busy text="Ожидание TV" />
       </div>
     </div>
   )
@@ -385,41 +384,41 @@ function PairForm({ host, onPaired }: { host: string; onPaired: () => void }): R
   const valid = /^\d{4,5}$/.test(pairPort) && /^\d{6}$/.test(code.trim()) && /^\d{4,5}$/.test(connectPort)
   return (
     <div className="card white">
-      <h2>This TV needs a pairing code</h2>
+      <h2>Этому TV нужен код сопряжения</h2>
       <p className="muted">
-        Some Google TVs (Sony, some Philips) keep port 5555 closed until you pair once. This uses Google's adb, which the app
-        downloads if it isn't here yet.
+        Некоторые Google TV (Sony, отдельные Philips) держат порт 5555 закрытым, пока вы не выполните сопряжение.
+        Используется Google adb — приложение скачает его, если его ещё нет.
       </p>
       <ol className="guide" style={{ marginBottom: 14 }}>
         <li>
           <span>
-            On the TV: <span className="path">Developer options<i>→</i>Wireless debugging</span>, turn it on, and note the{' '}
-            <b>IP address &amp; port</b> on that screen. That is the connect port.
+            На TV: <span className="path">Для разработчиков<i>→</i>Отладка по Wi-Fi</span>, включите её и запишите{' '}
+            <b>IP-адрес и порт</b> с этого экрана. Это порт подключения.
           </span>
         </li>
         <li>
           <span>
-            Choose <b>Pair device with pairing code</b>. Note the 6-digit code and the port shown under it. That is the pair
-            port.
+            Выберите <b>Сопряжение устройства с помощью кода</b>. Запишите 6-значный код и порт под ним. Это порт
+            сопряжения.
           </span>
         </li>
       </ol>
       <ResultNotice result={result} />
       <div className="row" style={{ alignItems: 'flex-end' }}>
         <label className="field" style={{ width: 120 }}>
-          Pair port
+          Порт сопряжения
           <input type="text" inputMode="numeric" value={pairPort} onChange={(e) => setPairPort(e.target.value)} placeholder="37145" />
         </label>
         <label className="field" style={{ width: 130 }}>
-          Code
+          Код
           <input type="text" inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} placeholder="482913" />
         </label>
         <label className="field" style={{ width: 130 }}>
-          Connect port
+          Порт подключения
           <input type="text" inputMode="numeric" value={connectPort} onChange={(e) => setConnectPort(e.target.value)} placeholder="41827" />
         </label>
         <button className="btn primary" onClick={pair} disabled={!valid || busy}>
-          {busy ? 'Pairing…' : 'Pair and connect'}
+          {busy ? 'Сопряжение…' : 'Сопрячь и подключить'}
         </button>
       </div>
     </div>

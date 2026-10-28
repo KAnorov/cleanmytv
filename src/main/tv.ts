@@ -39,7 +39,7 @@ export async function connect(host: string): Promise<ConnStatus> {
     // "ip" or "ip:port"; the record and messages use the IP, as upstream's TV_HOST does.
     const m = /^([A-Za-z0-9.-]+)(?::(\d{1,5}))?$/.exec(host)
     if (!m || (m[2] && (Number(m[2]) < 1 || Number(m[2]) > 65535))) {
-      return setStatus({ state: 'error', host, error: 'That is not an address. Type the IP the TV shows under Settings → Network, like 192.168.1.50.' })
+      return setStatus({ state: 'error', host, error: 'Это не адрес. Введите IP, который TV показывает в Настройках → Сеть, например 192.168.1.50.' })
     }
     const c = await AdbClient.connect({
       host: m[1],
@@ -50,7 +50,7 @@ export async function connect(host: string): Promise<ConnStatus> {
     c.onClose = (err) => {
       if (client === c) {
         client = null
-        setStatus({ state: 'error', host, error: `Lost the TV: ${err.message}` })
+        setStatus({ state: 'error', host, error: `Связь с TV потеряна: ${err.message}` })
       }
     }
     client = c
@@ -65,12 +65,12 @@ export async function connect(host: string): Promise<ConnStatus> {
 function friendly(err: AdbError): string {
   switch (err.code) {
     case 'refused':
-      return 'The TV is there but network debugging is off. Turn on USB debugging (and Network or ADB debugging if you see it) in Developer options.'
+      return 'TV доступен, но отладка по сети выключена. Включите «Отладку по USB» (и «Отладку по сети» или ADB, если есть) в разделе «Для разработчиков».'
     case 'timeout':
     case 'unreachable':
-      return `${err.message} Check the IP address, that the TV is on, and that this computer is on the same network.`
+      return `${err.message} Проверьте IP-адрес, что TV включён и что компьютер в той же сети.`
     case 'tls':
-      return 'This TV only offers Wireless debugging, which needs a one-time pairing code.'
+      return 'Этот TV предлагает только отладку по Wi-Fi, для которой нужен одноразовый код сопряжения.'
     case 'auth':
       return err.message
     default:
@@ -88,13 +88,13 @@ export function disconnect(): void {
 }
 
 export function tv(): AdbClient {
-  if (!client || client.closed) throw new Error('Not connected to a TV. Connect in Setup first.')
+  if (!client || client.closed) throw new Error('Нет подключения к TV. Сначала подключитесь в разделе «Подключение».')
   return client
 }
 
 /** The TV's IP address, without a port. */
 export function host(): string {
-  if (!status.host) throw new Error('Not connected to a TV.')
+  if (!status.host) throw new Error('Нет подключения к TV.')
   return status.host.replace(/:\d+$/, '')
 }
 
@@ -143,22 +143,22 @@ export async function pushB64(task: string, data: Buffer, remote: string, onChun
   // the middle of the stream, which base64 -d would corrupt.
   let chunk = Math.min(48 * 1024, Math.floor((c.maxData * 3) / 4) - 64 - remote.length)
   chunk -= chunk % 3
-  if (chunk < 3) throw new Error(`this TV accepts commands too short (${c.maxData} bytes) to upload files.`)
+  if (chunk < 3) throw new Error(`этот TV принимает слишком короткие команды (${c.maxData} байт) для загрузки файлов.`)
   const tmp = remote + '.b64'
   q(remote); q(tmp)
   await c.shell(`rm -f ${remote} ${tmp}`)
   const n = Math.max(1, Math.ceil(data.length / chunk))
-  log(task, 'cmd', `upload ${remote} (${Math.round(data.length / 1024)} KB, ${n} chunks)`)
+  log(task, 'cmd', `загрузка ${remote} (${Math.round(data.length / 1024)} КБ, фрагментов: ${n})`)
   for (let i = 0; i < n; i++) {
     const part = data.subarray(i * chunk, (i + 1) * chunk).toString('base64')
     const out = await c.shell(`echo '${part}' >> ${tmp} && echo ok${i}`, 60000)
-    if (!out.includes(`ok${i}`)) throw new Error(`upload chunk ${i + 1} of ${n} failed: ${out.trim()}`)
+    if (!out.includes(`ok${i}`)) throw new Error(`не удалось загрузить фрагмент ${i + 1} из ${n}: ${out.trim()}`)
     onChunk?.(i + 1, n)
   }
   const out = await c.shell(`base64 -d ${tmp} > ${remote} && rm ${tmp} && md5sum ${remote}`, 120000)
   const got = out.trim().split(/\s+/)[0] ?? ''
-  if (got !== want) throw new Error(`upload of ${remote} is damaged (md5 ${got || 'missing'}, expected ${want}).`)
-  log(task, 'ok', `uploaded ${remote}, checksum matches`)
+  if (got !== want) throw new Error(`файл ${remote} загружен с ошибкой (md5 ${got || 'отсутствует'}, ожидался ${want}).`)
+  log(task, 'ok', `загружено ${remote}, контрольная сумма совпадает`)
 }
 
 /** Read a file from the TV, binary-safe: base64 on the TV, decoded here. Null when it is missing. */
@@ -172,7 +172,7 @@ export async function pullB64(remote: string): Promise<Buffer | null> {
 /** Paths and names that go into a TV shell command: refuse anything with shell syntax. */
 export function q(value: string): string {
   // A leading '-' would turn a name into an option of pm, rm or base64.
-  if (!/^[A-Za-z0-9_./@:][A-Za-z0-9_./@:-]*$/.test(value)) throw new Error(`refusing unsafe name for a TV command: ${value}`)
+  if (!/^[A-Za-z0-9_./@:][A-Za-z0-9_./@:-]*$/.test(value)) throw new Error(`небезопасное имя для команды TV: ${value}`)
   return value
 }
 
@@ -206,7 +206,7 @@ export async function homeClaimants(): Promise<string[]> {
 export async function packageSets(): Promise<{ installed: Set<string>; disabled: Set<string> }> {
   const parse = (out: string): Set<string> => new Set(out.split('\n').filter((l) => l.startsWith('package:')).map((l) => l.slice(8).trim()))
   const installed = parse(await tv().shell('pm list packages'))
-  if (!installed.size) throw new Error('The TV returned no packages. Check the connection and try again.')
+  if (!installed.size) throw new Error('TV не вернул ни одного пакета. Проверьте подключение и попробуйте снова.')
   const disabled = parse(await tv().shell('pm list packages -d'))
   return { installed, disabled }
 }

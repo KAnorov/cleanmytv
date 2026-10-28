@@ -31,7 +31,7 @@ export function androidPublicKey(priv: KeyObject): string {
   const n = toBigInt(nBuf)
   const e = Number(toBigInt(Buffer.from(jwk.e, 'base64url')))
   const words = nBuf.length / 4
-  if (!Number.isInteger(words)) throw new Error('unexpected modulus size')
+  if (!Number.isInteger(words)) throw new Error('неожиданный размер модуля')
   const two32 = 1n << 32n
   // n0inv = -1 / n mod 2^32
   const n0 = n % two32

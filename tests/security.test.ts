@@ -49,7 +49,7 @@ describe('handshake', () => {
     servers.push(server)
     const s = await T.connect(addr)
     expect(s.state).toBe('error')
-    expect(s.error).toMatch(/64-byte login challenge/)
+    expect(s.error).toMatch(/запрос входа на 64 байт/)
   })
 
   it.each(['oversize', 'magic'] as const)('drops the connection on a %s packet', async (kind) => {
@@ -62,7 +62,7 @@ describe('handshake', () => {
   it('rejects addresses that are not a host or host:port', async () => {
     const s = await T.connect('192.168.1.5; reboot')
     expect(s.state).toBe('error')
-    expect(s.error).toMatch(/not an address/)
+    expect(s.error).toMatch(/не адрес/)
   })
 
   it('refuses TV command names that start with a dash', () => {
@@ -88,7 +88,7 @@ describe('reconnect', () => {
     const s = await reconnect({ lastHost: '192.168.1.9', lastDevice: 'mibox', lastModel: 'Mi Box S' }, d)
     expect(d.disconnect).toHaveBeenCalled()
     expect(s?.moved).toBe(true)
-    expect(s?.error).toMatch(/different device/)
+    expect(s?.error).toMatch(/другое устройство/)
   })
 
   it('does not scan or log in anywhere else when the TV is gone', async () => {
@@ -101,7 +101,7 @@ describe('reconnect', () => {
   it('treats a refusal as "debugging off or a new address", and leaves pairing as it is', async () => {
     const off = await reconnect({ lastHost: 'h' }, deps({ state: 'error', host: 'h', error: 'The TV is there but network debugging is off.' }))
     expect(off?.moved).toBe(true)
-    expect(off?.error).toMatch(/Turn on USB debugging.*new address/)
+    expect(off?.error).toMatch(/Включите отладку по USB.*новый адрес/)
     const pairing = await reconnect({ lastHost: 'h' }, deps({ state: 'error', host: 'h', needsPairing: true, error: 'pair' }))
     expect(pairing?.moved).toBeUndefined()
   })
@@ -157,7 +157,7 @@ describe('recovery records', () => {
     const path = D.recordPath(file, 'localhost')
     const rec = JSON.parse(readFileSync(path, 'utf8'))
     writeFileSync(path, JSON.stringify({ ...rec, device: 'someone-elses-tv' }))
-    await expect(D.plan('custom')).rejects.toThrow(/another device/)
+    await expect(D.plan('custom')).rejects.toThrow(/другом устройстве/)
   })
 })
 
@@ -169,8 +169,14 @@ describe('pinned upstream', () => {
     writeFileSync(join(dir, 'launcher', 'app', 'build.gradle'), "versionName '2.4'\n")
     const mjs = await import('../scripts/tree-hash.mjs')
     expect(treeHash(dir, ['launcher'])).toBe(mjs.treeHash(dir, ['launcher']))
-    symlinkSync('/etc/hosts', join(dir, 'launcher', 'evil'))
-    expect(() => treeHash(dir, ['launcher'])).toThrow(/symlink/)
+    try {
+      symlinkSync('/etc/hosts', join(dir, 'launcher', 'evil'))
+    } catch (e) {
+      // Windows without Developer Mode cannot create file symlinks; the check is covered on CI.
+      if ((e as NodeJS.ErrnoException).code === 'EPERM') return
+      throw e
+    }
+    expect(() => treeHash(dir, ['launcher'])).toThrow(/символическая ссылка/)
   })
 
   it('the bundled lists match the pinned commit', () => {

@@ -1,12 +1,14 @@
-# Known devices
+# Известные устройства
 
-A per-model quick-reference of the debloat lists bundled with the app, generated from
-`resources/upstream/examples/*/debloat.txt` headers — the authoritative detail lives in each
-list file. Use it to look your TV up before connecting; the app itself picks the matching
-list automatically during **Clean up**, so an unlisted model still gets a sensible starting
-point (the packages other TVs disable, or the family list for Xiaomi/Mi and TCL/Thomson).
+Краткий справочник по спискам очистки для каждой модели, собранный из заголовков
+`resources/upstream/examples/*/debloat.txt`; подробности — в самом файле списка. Используйте его,
+чтобы найти свой TV до подключения; приложение само подбирает подходящий список на шаге **«Очистка»**,
+поэтому для модели без отдельного списка всё равно будет разумная отправная точка (пакеты, которые
+отключают на других TV, или семейный список для Xiaomi/Mi и TCL/Thomson).
 
-| Model | OS | Stock launcher | Notes |
+Примечания к моделям взяты из upstream-списков и остаются на английском как справочные данные.
+
+| Модель | ОС | Штатный лаунчер | Примечания |
 |---|---|---|---|
 | AiPro2K (Expressluck, device dongnae), Android TV 14, firmware UKN6.260116.085 | 14 | `com.google.android.apps.tv.launcherx` | needs pairing; setupwraith grabs Home |
 | AIWA AI PONT SA (Changhong, brand AIWA, device osaka, product ISDB86AW) | 14 | `com.google.android.apps.tv.launcherx` | - |
