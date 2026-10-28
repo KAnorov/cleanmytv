@@ -35,7 +35,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var launcher by mutableStateOf<LauncherStatus?>(null)
         private set
 
-    fun setHost(value: String) {
+    fun updateHost(value: String) {
         host = value
     }
 

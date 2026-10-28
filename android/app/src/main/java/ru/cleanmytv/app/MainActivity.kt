@@ -162,7 +162,7 @@ private fun ConnectScreen(vm: AppViewModel) {
 
         OutlinedTextField(
             value = vm.host,
-            onValueChange = vm::setHost,
+            onValueChange = vm::updateHost,
             label = { Text("IP-адрес TV") },
             placeholder = { Text("192.168.1.50") },
             singleLine = true,
