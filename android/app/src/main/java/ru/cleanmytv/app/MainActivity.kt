@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -104,7 +105,7 @@ private fun CleanMyTvApp(vm: AppViewModel) {
         Column(Modifier.padding(padding).fillMaxSize()) {
             if (vm.probe != null) {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilterChip(
@@ -212,8 +213,19 @@ private fun ConnectScreen(vm: AppViewModel) {
 private fun CleanScreen(vm: AppViewModel) {
     val plan = vm.plan
     if (plan == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+        Column(
+            Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (vm.busy || vm.connecting) {
+                Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                Text("Не удалось загрузить список.", style = MaterialTheme.typography.titleMedium)
+                OutlinedButton(onClick = vm::loadPlan) { Text("Повторить") }
+            }
+            MessageCards(vm)
         }
         return
     }
@@ -405,7 +417,14 @@ private fun LauncherScreen(vm: AppViewModel) {
                     )
                     Text("Версия: ${st.versionName ?: "—"}")
                     Text("Home: ${if (st.isHome) "этот лаунчер" else st.homeComponent ?: "не определён"}")
+                    Text(
+                        "Закреплён после перезагрузки: ${if (st.pinned) "да" else "нет"}",
+                        color = if (st.pinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    )
                     Text("Штатный лаунчер: ${st.stockLauncher ?: "не найден"}")
+                    if (st.enabledStock.isNotEmpty()) {
+                        Text("Включены штатные: ${st.enabledStock.joinToString()}")
+                    }
                 }
             }
 
@@ -418,6 +437,14 @@ private fun LauncherScreen(vm: AppViewModel) {
             }
 
             OutlinedButton(
+                onClick = vm::makeDefaultLauncher,
+                enabled = !vm.busy && st.installed,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Сделать по умолчанию")
+            }
+
+            OutlinedButton(
                 onClick = vm::useStockLauncher,
                 enabled = !vm.busy && st.stockLauncher != null,
                 modifier = Modifier.fillMaxWidth()
@@ -426,8 +453,8 @@ private fun LauncherScreen(vm: AppViewModel) {
             }
 
             Text(
-                "Встроенный лаунчер 2.4 устанавливается на TV, запускается и получает Home. " +
-                    "После установки нажмите Home на пульте.",
+                "«Сделать по умолчанию» назначает новый лаунчер Home и отключает штатные, " +
+                    "чтобы после перезагрузки не возвращался старый экран. После установки нажмите Home на пульте.",
                 style = MaterialTheme.typography.bodySmall
             )
         }

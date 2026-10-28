@@ -197,6 +197,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun makeDefaultLauncher() {
+        val client = tv ?: return
+        busy = true
+        error = null
+        message = null
+        viewModelScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) { LauncherOps.makeDefault(client) }
+                message = render(result)
+                launcher = withContext(Dispatchers.IO) { LauncherOps.status(client) }
+                reloadPlan()
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
     fun useStockLauncher() {
         val client = tv ?: return
         busy = true

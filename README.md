@@ -187,7 +187,7 @@ Push в `main` и теги версий также собирают устано
 Wi-Fi, очистка по встроенным спискам с точкой восстановления, установка лаунчера и возврат штатного.
 Тема, обои, заставка, DNS и пульт пока остаются в настольной версии.
 
-Скачать APK: [CleanMyTV-android-0.1.1.apk](https://github.com/KAnorov/cleanmytv/releases/download/android-v0.1.1/CleanMyTV-android-0.1.1.apk).
+Скачать APK: [CleanMyTV-android-0.1.2.apk](https://github.com/KAnorov/cleanmytv/releases/download/android-v0.1.2/CleanMyTV-android-0.1.2.apk).
 Подробности и сборка — в [android/README.md](android/README.md).
 
 ## Лицензия

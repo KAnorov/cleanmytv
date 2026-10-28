@@ -132,6 +132,11 @@ class TvClient(private val context: Context) : Closeable {
         shell("cmd package set-home-activity --user 0 $component")
     }
 
+    fun uninstall(pkg: String): String {
+        validatePackage(pkg)
+        return shell("pm uninstall $pkg").trim()
+    }
+
     fun installApk(file: File): String {
         val d = dadb ?: throw IllegalStateException("Нет подключения к TV")
         return when (val result = d.install(file, "-r")) {

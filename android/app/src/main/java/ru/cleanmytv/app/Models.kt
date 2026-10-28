@@ -63,8 +63,11 @@ data class LauncherStatus(
     val isHome: Boolean,
     val homeComponent: String?,
     val stockLauncher: String?,
+    val enabledStock: List<String> = emptyList(),
     val bundledVersion: String = "2.4"
-)
+) {
+    val pinned: Boolean get() = isHome && enabledStock.isEmpty()
+}
 
 data class ApplyResult(
     val ok: Boolean,
