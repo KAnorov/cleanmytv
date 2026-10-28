@@ -90,7 +90,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun selectAllSuggested() {
         val p = plan ?: return
-        selected = p.entries.filter { it.suggested && it.state != "absent" }.map { it.pkg }.toSet()
+        selected = p.entries.filter { it.suggested && it.state == "enabled" }.map { it.pkg }.toSet()
     }
 
     fun clearSelection() {
