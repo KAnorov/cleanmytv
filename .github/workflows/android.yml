@@ -30,23 +30,27 @@ jobs:
       - name: Assemble debug APK
         run: gradle -p android assembleDebug --no-daemon --stacktrace
       - name: Name the APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk CleanMyTV-android-0.1.2.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk CleanMyTV-android-0.2.0.apk
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: CleanMyTV-android
-          path: CleanMyTV-android-0.1.2.apk
+          path: CleanMyTV-android-0.2.0.apk
           if-no-files-found: error
       - name: Release
         if: startsWith(github.ref, 'refs/tags/android-')
         uses: softprops/action-gh-release@v2
         with:
-          files: CleanMyTV-android-0.1.2.apk
+          files: CleanMyTV-android-0.2.0.apk
           name: CleanMyTV для Android
           body: |
-            MVP Android-приложения CleanMyTV.
+            Android-приложение CleanMyTV.
 
             - Подключение к TV по Wi-Fi через ADB (порт 5555).
             - Очистка по встроенным upstream-спискам с точкой восстановления.
+            - Автопоиск TV в локальной сети и проверка обновлений.
+            - Экран «Что отключено», возврат одного пакета и повторное отключение «хвостов» после прошивки.
+            - Экспорт скрипта отката .sh/.ps1 для запуска с компьютера.
+            - Настройки TV: Private DNS с блокировкой рекламы и скорость анимаций.
             - Установка лаунчера CleanYourTV 2.4 и назначение Home.
             - Закрепление лаунчера как Home: штатные отключаются, чтобы после перезагрузки не возвращался старый экран.
 

@@ -156,6 +156,20 @@ class TvClient(private val context: Context) : Closeable {
             ?.takeIf { it.isNotEmpty() }
     }
 
+    /** Значение глобальной настройки Android, например private_dns_mode. */
+    fun setting(key: String): String {
+        validateSettingKey(key)
+        val value = shell("settings get global $key").trim()
+        return if (value == "null") "" else value
+    }
+
+    /** Меняет глобальную настройку Android. Значение проверяется, чтобы не собрать лишнюю команду. */
+    fun putSetting(key: String, value: String) {
+        validateSettingKey(key)
+        require(value.matches(SETTING_VALUE_RE)) { "Некорректное значение настройки: $value" }
+        shell("settings put global $key $value")
+    }
+
     override fun close() {
         try {
             dadb?.close()
@@ -168,9 +182,15 @@ class TvClient(private val context: Context) : Closeable {
         require(pkg.matches(PACKAGE_RE)) { "Некорректное имя пакета: $pkg" }
     }
 
+    private fun validateSettingKey(key: String) {
+        require(key.matches(SETTING_KEY_RE)) { "Некорректный ключ настройки: $key" }
+    }
+
     companion object {
         val PACKAGE_RE = Regex("^[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+$")
         val COMPONENT_RE = Regex("^[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+$")
+        val SETTING_KEY_RE = Regex("^[A-Za-z0-9_.]+$")
+        val SETTING_VALUE_RE = Regex("^[A-Za-z0-9_.-]*$")
 
         val KNOWN_STOCK = listOf(
             "com.google.android.tvlauncher",

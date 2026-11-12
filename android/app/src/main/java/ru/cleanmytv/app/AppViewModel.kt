@@ -2,6 +2,7 @@ package ru.cleanmytv.app
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -10,14 +11,16 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 
-enum class Screen { Connect, Clean, Launcher }
+enum class Screen { Connect, Clean, Launcher, Disabled, TvSettings }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val prefs = app.getSharedPreferences("cleanmytv", Context.MODE_PRIVATE)
     private var tv: TvClient? = null
     private var debloat: Debloat? = null
+    private val scanCancelled = AtomicBoolean(false)
 
     var host by mutableStateOf(prefs.getString("host", "") ?: "")
     var screen by mutableStateOf(Screen.Connect)
@@ -35,23 +38,52 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var launcher by mutableStateOf<LauncherStatus?>(null)
         private set
 
+    var scanning by mutableStateOf(false)
+        private set
+    var scanChecked by mutableStateOf(0)
+        private set
+    var found by mutableStateOf<List<Discovery.Found>>(emptyList())
+        private set
+
+    var disabledState by mutableStateOf<DisabledState?>(null)
+        private set
+    var tvSettings by mutableStateOf<TvSettingsState?>(null)
+        private set
+
+    var update by mutableStateOf<UpdateInfo?>(null)
+        private set
+    var checkingUpdate by mutableStateOf(false)
+        private set
+
+    var exportText by mutableStateOf<String?>(null)
+        private set
+    var exportName by mutableStateOf("")
+        private set
+
     fun updateHost(value: String) {
         host = value
     }
 
     fun connect() {
-        if (connecting) return
         val address = host.trim()
         if (address.isBlank()) {
             error = "Введите IP-адрес TV, например 192.168.1.50."
             return
         }
+        connectTo(address)
+    }
+
+    fun connectTo(address: String) {
+        if (connecting) return
+        host = address
         connecting = true
         error = null
         message = null
         probe = null
         plan = null
         launcher = null
+        disabledState = null
+        tvSettings = null
         selected = emptySet()
         viewModelScope.launch {
             try {
@@ -62,6 +94,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 tv = client
                 probe = client.probe
                 prefs.edit().putString("host", address).apply()
+                stopScan()
                 screen = Screen.Clean
                 loadPlan()
             } catch (e: Throwable) {
@@ -80,6 +113,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         when (target) {
             Screen.Clean -> if (plan == null) loadPlan()
             Screen.Launcher -> if (launcher == null) refreshLauncher()
+            Screen.Disabled -> loadDisabled()
+            Screen.TvSettings -> if (tvSettings == null) loadTvSettings()
             Screen.Connect -> Unit
         }
     }
@@ -163,6 +198,168 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- поиск телевизоров в сети ----
+
+    fun startScan() {
+        if (scanning) {
+            stopScan()
+            return
+        }
+        if (Discovery.localAddress() == null) {
+            error = "Телефон не видит Wi-Fi сеть. Подключите его к той же сети, что и TV."
+            return
+        }
+        scanCancelled.set(false)
+        scanning = true
+        scanChecked = 0
+        found = emptyList()
+        error = null
+        message = null
+        viewModelScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    Discovery.scan(
+                        onProgress = { checked, list ->
+                            scanChecked = checked
+                            found = list
+                        },
+                        shouldStop = { scanCancelled.get() }
+                    )
+                }
+                if (!scanCancelled.get()) {
+                    found = result
+                    if (result.isEmpty()) {
+                        message = "Телевизоров с открытым портом 5555 не нашлось. Проверьте, что на TV " +
+                            "включены «Отладка по USB» и «Отладка по сети», и что он в той же Wi-Fi сети."
+                    }
+                }
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                scanning = false
+            }
+        }
+    }
+
+    private fun stopScan() {
+        scanCancelled.set(true)
+        scanning = false
+    }
+
+    // ---- что отключено и хвосты после обновления ----
+
+    fun loadDisabled() {
+        val d = debloat ?: return
+        val record = plan?.record
+        busy = true
+        error = null
+        viewModelScope.launch {
+            try {
+                disabledState = withContext(Dispatchers.IO) {
+                    if (record == null) DisabledState(emptyList(), emptyList()) else d.disabledState(record)
+                }
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun restoreOne(pkg: String) {
+        val d = debloat ?: return
+        busy = true
+        error = null
+        message = null
+        viewModelScope.launch {
+            try {
+                message = render(withContext(Dispatchers.IO) { d.restoreOne(pkg) })
+                reloadPlan()
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun reapplyLeftovers() {
+        val d = debloat ?: return
+        val leftovers = disabledState?.leftovers.orEmpty()
+        busy = true
+        error = null
+        message = null
+        viewModelScope.launch {
+            try {
+                message = render(withContext(Dispatchers.IO) { d.reapply(leftovers) })
+                reloadPlan()
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    // ---- настройки самого телевизора ----
+
+    fun loadTvSettings() {
+        val client = tv ?: return
+        busy = true
+        error = null
+        viewModelScope.launch {
+            try {
+                tvSettings = withContext(Dispatchers.IO) { TvSettings(client).read() }
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun setDnsBlocking(enable: Boolean) {
+        val client = tv ?: return
+        busy = true
+        error = null
+        message = null
+        viewModelScope.launch {
+            try {
+                val settings = TvSettings(client)
+                message = withContext(Dispatchers.IO) {
+                    if (enable) settings.enableDnsBlocking() else settings.disableDnsBlocking()
+                }
+                tvSettings = withContext(Dispatchers.IO) { settings.read() }
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun setAnimationsOff(off: Boolean) {
+        val client = tv ?: return
+        busy = true
+        error = null
+        message = null
+        viewModelScope.launch {
+            try {
+                val settings = TvSettings(client)
+                message = withContext(Dispatchers.IO) {
+                    if (off) settings.disableAnimations() else settings.resetAnimations()
+                }
+                tvSettings = withContext(Dispatchers.IO) { settings.read() }
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    // ---- лаунчер ----
+
     fun refreshLauncher() {
         val client = tv ?: return
         busy = true
@@ -235,6 +432,56 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- обновления и экспорт ----
+
+    fun checkUpdates() {
+        if (checkingUpdate) return
+        checkingUpdate = true
+        error = null
+        viewModelScope.launch {
+            try {
+                update = withContext(Dispatchers.IO) { Updates.check(BuildConfig.VERSION_NAME) }
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                checkingUpdate = false
+            }
+        }
+    }
+
+    /** Готовит текст скрипта и возвращает имя файла; сохранением файла занимается экран. */
+    fun prepareExport(extension: String): String? {
+        val p = probe ?: return null
+        val record = plan?.record
+        if (record == null) {
+            error = "Точки восстановления пока нет — сохранять нечего."
+            return null
+        }
+        exportText = if (extension.equals("ps1", ignoreCase = true)) {
+            RestoreScript.powershell(p, record)
+        } else {
+            RestoreScript.bash(p, record)
+        }
+        exportName = RestoreScript.fileName(p, extension)
+        return exportName
+    }
+
+    fun writeExport(context: Context, uri: Uri) {
+        val text = exportText ?: return
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val stream = context.contentResolver.openOutputStream(uri)
+                        ?: throw IllegalStateException("Не удалось открыть файл для записи")
+                    stream.use { it.write(text.toByteArray(Charsets.UTF_8)) }
+                }
+                message = "Скрипт сохранён: $exportName"
+            } catch (e: Throwable) {
+                error = friendly(e)
+            }
+        }
+    }
+
     fun clearMessages() {
         error = null
         message = null
@@ -247,10 +494,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         probe = null
         plan = null
         launcher = null
+        disabledState = null
+        tvSettings = null
         selected = emptySet()
         screen = Screen.Connect
         message = null
         error = null
+        stopScan()
         viewModelScope.launch(Dispatchers.IO) { runCatching { client?.close() } }
     }
 
@@ -260,6 +510,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val next = withContext(Dispatchers.IO) { d.plan(p) }
         plan = next
         selected = next.suggestedInstalled.map { it.pkg }.toSet()
+        val record = next.record
+        disabledState = withContext(Dispatchers.IO) {
+            if (record == null) DisabledState(emptyList(), emptyList()) else d.disabledState(record)
+        }
     }
 
     private fun render(result: ApplyResult): String {

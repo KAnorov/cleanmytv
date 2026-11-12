@@ -74,3 +74,9 @@ data class ApplyResult(
     val summary: String,
     val warnings: List<String> = emptyList()
 )
+
+/** Что сейчас отключено по записи восстановления и что вернулось после обновления прошивки. */
+data class DisabledState(
+    val disabled: List<String>,
+    val leftovers: List<String>
+)

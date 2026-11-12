@@ -121,11 +121,13 @@ class Debloat(private val context: Context, private val tv: TvClient) {
     fun restore(record: RecoveryRecord): ApplyResult {
         val warnings = mutableListOf<String>()
         var enabled = 0
+        val restored = mutableSetOf<String>()
         for ((pkg, state) in record.packages) {
             if (state != "enabled") continue
             try {
                 tv.enablePackage(pkg)
                 enabled++
+                restored += pkg
             } catch (e: Throwable) {
                 warnings += "$pkg: ${e.message ?: e.javaClass.simpleName}"
             }
@@ -140,11 +142,71 @@ class Debloat(private val context: Context, private val tv: TvClient) {
                 warnings += "Home: ${e.message ?: e.javaClass.simpleName}"
             }
         }
+        if (restored.isNotEmpty()) {
+            val probe = tv.probe
+            if (probe != null) {
+                persist(probe, record.copy(packages = record.packages - restored))
+            }
+        }
         return ApplyResult(
             ok = true,
             summary = "Включено обратно: $enabled пакетов.$homeNote",
             warnings = warnings
         )
+    }
+
+    /** Что из записи сейчас отключено и что вернулось само — например, после обновления прошивки. */
+    fun disabledState(record: RecoveryRecord): DisabledState {
+        val sets = tv.packageSets()
+        val changed = record.packages.filterValues { it == "enabled" }.keys
+        val disabled = changed.filter { it in sets.disabled }.sorted()
+        val leftovers = changed.filter { it in sets.enabled }.sorted()
+        return DisabledState(disabled = disabled, leftovers = leftovers)
+    }
+
+    /** Включает одно приложение обратно. */
+    fun restoreOne(pkg: String): ApplyResult {
+        tv.enablePackage(pkg)
+        val probe = tv.probe
+        val record = if (probe != null) loadRecord(probe) else null
+        if (probe != null && record != null) {
+            persist(probe, record.copy(packages = record.packages - pkg))
+        }
+        return ApplyResult(true, "Включён обратно: $pkg")
+    }
+
+    /** Отключает снова то, что вернулось после обновления прошивки. */
+    fun reapply(packages: List<String>): ApplyResult {
+        val warnings = mutableListOf<String>()
+        val reapplied = mutableListOf<String>()
+        for (pkg in packages) {
+            if (!pkg.matches(TvClient.PACKAGE_RE)) continue
+            try {
+                val out = tv.disablePackage(pkg)
+                if (out.contains("disabled", ignoreCase = true) || out.isBlank()) {
+                    reapplied += pkg
+                } else {
+                    warnings += "$pkg: ${out.take(140)}"
+                }
+            } catch (e: Throwable) {
+                warnings += "$pkg: ${e.message ?: e.javaClass.simpleName}"
+            }
+        }
+        val probe = tv.probe
+        if (probe != null && reapplied.isNotEmpty()) {
+            val record = loadRecord(probe)
+            if (record != null) {
+                val known = record.packages.toMutableMap()
+                for (pkg in reapplied) known[pkg] = "enabled"
+                persist(probe, record.copy(packages = known))
+            }
+        }
+        val summary = if (packages.isEmpty()) {
+            "Нечего возвращать: всё на месте."
+        } else {
+            "Отключено снова: ${reapplied.size} из ${packages.size}."
+        }
+        return ApplyResult(reapplied.isNotEmpty() || packages.isEmpty(), summary, warnings)
     }
 
     private fun stateOf(pkg: String, sets: PackageSets): String = when {
@@ -277,12 +339,26 @@ class Debloat(private val context: Context, private val tv: TvClient) {
         for (pkg in targets) {
             if (!packages.containsKey(pkg)) packages[pkg] = stateOf(pkg, sets)
         }
+        persist(
+            probe,
+            RecoveryRecord(
+                host = probe.host,
+                device = probe.device,
+                created = old?.created ?: Instant.now().toString(),
+                home = old?.home ?: home,
+                packages = packages
+            )
+        )
+    }
+
+    /** Перезаписывает запись восстановления, чтобы «Восстановить» и «Что отключено» не расходились. */
+    private fun persist(probe: Probe, record: RecoveryRecord) {
         val json = JSONObject()
-        json.put("host", probe.host)
-        json.put("device", probe.device)
-        json.put("created", old?.created ?: Instant.now().toString())
-        json.put("home", old?.home ?: home ?: "")
-        json.put("packages", JSONObject(packages as Map<*, *>))
-        file.writeText(json.toString(2))
+        json.put("host", record.host.ifBlank { probe.host })
+        json.put("device", record.device.ifBlank { probe.device })
+        json.put("created", record.created)
+        json.put("home", record.home ?: "")
+        json.put("packages", JSONObject(record.packages as Map<*, *>))
+        recordFile(probe).writeText(json.toString(2))
     }
 }

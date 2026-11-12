@@ -1,9 +1,13 @@
 package ru.cleanmytv.app
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -123,6 +128,16 @@ private fun CleanMyTvApp(vm: AppViewModel) {
                         onClick = { vm.open(Screen.Launcher) },
                         label = { Text("Лаунчер") }
                     )
+                    FilterChip(
+                        selected = vm.screen == Screen.Disabled,
+                        onClick = { vm.open(Screen.Disabled) },
+                        label = { Text("Отключено") }
+                    )
+                    FilterChip(
+                        selected = vm.screen == Screen.TvSettings,
+                        onClick = { vm.open(Screen.TvSettings) },
+                        label = { Text("Настройки TV") }
+                    )
                 }
                 HorizontalDivider()
             }
@@ -133,6 +148,8 @@ private fun CleanMyTvApp(vm: AppViewModel) {
                 Screen.Connect -> ConnectScreen(vm)
                 Screen.Clean -> CleanScreen(vm)
                 Screen.Launcher -> LauncherScreen(vm)
+                Screen.Disabled -> DisabledScreen(vm)
+                Screen.TvSettings -> TvSettingsScreen(vm)
             }
         }
     }
@@ -188,6 +205,45 @@ private fun ConnectScreen(vm: AppViewModel) {
             )
         }
 
+        Card {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Поиск в сети", fontWeight = FontWeight.Bold)
+                Text(
+                    "Приложение проверит адреса в вашей Wi-Fi сети и найдёт телевизоры " +
+                        "с открытым портом отладки 5555. Это занимает до минуты.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                OutlinedButton(
+                    onClick = vm::startScan,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (vm.scanning) "Остановить поиск" else "Найти телевизоры")
+                }
+                if (vm.scanning) {
+                    Text(
+                        "Проверено адресов: ${vm.scanChecked} из 253",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+                if (vm.found.isNotEmpty()) {
+                    Text(
+                        "Найдено: ${vm.found.size}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    vm.found.forEach { device ->
+                        OutlinedButton(
+                            onClick = { vm.connectTo(device.host) },
+                            enabled = !vm.connecting,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Подключить ${device.host}")
+                        }
+                    }
+                }
+            }
+        }
+
         vm.probe?.let { p ->
             Card {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -205,7 +261,54 @@ private fun ConnectScreen(vm: AppViewModel) {
             }
         }
 
+        UpdateCard(vm)
         MessageCards(vm)
+    }
+}
+
+@Composable
+private fun UpdateCard(vm: AppViewModel) {
+    val context = LocalContext.current
+    Card {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Обновления", fontWeight = FontWeight.Bold)
+            OutlinedButton(
+                onClick = vm::checkUpdates,
+                enabled = !vm.checkingUpdate,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (vm.checkingUpdate) "Проверка…" else "Проверить обновления")
+            }
+            vm.update?.let { u ->
+                val current = BuildConfig.VERSION_NAME
+                Text(
+                    when {
+                        u.newer -> "Доступна версия ${u.version} — у вас $current."
+                        u.version == current -> "У вас последняя версия ($current)."
+                        else -> "У вас сборка $current, последний релиз — ${u.version}."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (u.newer) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                )
+                if (u.notes.isNotBlank()) {
+                    Text(
+                        u.notes,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 6,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (u.url.startsWith("https://")) {
+                    TextButton(onClick = {
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u.url)))
+                        }
+                    }) {
+                        Text("Открыть страницу релиза")
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -232,6 +335,13 @@ private fun CleanScreen(vm: AppViewModel) {
 
     var confirmApply by remember { mutableStateOf(false) }
     var confirmRestore by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val scriptLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri != null) vm.writeExport(context.applicationContext, uri)
+    }
 
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Text("Очистка", style = MaterialTheme.typography.headlineMedium)
@@ -292,6 +402,25 @@ private fun CleanScreen(vm: AppViewModel) {
         plan.record?.let {
             Text(
                 "Точка восстановления: ${it.created}",
+                style = MaterialTheme.typography.labelSmall
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(
+                    onClick = {
+                        val name = vm.prepareExport("sh") ?: return@TextButton
+                        scriptLauncher.launch(name)
+                    }
+                ) { Text("Скрипт отката .sh") }
+                TextButton(
+                    onClick = {
+                        val name = vm.prepareExport("ps1") ?: return@TextButton
+                        scriptLauncher.launch(name)
+                    }
+                ) { Text("Скрипт отката .ps1") }
+            }
+            Text(
+                "Скрипт сохраняется отдельным файлом: его можно запустить на любом компьютере " +
+                    "с adb, даже если приложения под рукой уже нет.",
                 style = MaterialTheme.typography.labelSmall
             )
         }
@@ -389,6 +518,258 @@ private fun EntryRow(entry: DebloatEntry, checked: Boolean, onToggle: (String) -
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DisabledScreen(vm: AppViewModel) {
+    val state = vm.disabledState
+    var pendingRestore by remember { mutableStateOf<String?>(null) }
+
+    Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Что отключено", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            "Здесь только то, что отключило это приложение. Любой пакет можно вернуть по одному.",
+            style = MaterialTheme.typography.bodySmall
+        )
+
+        if (state == null) {
+            if (vm.busy) {
+                Box(Modifier.fillMaxWidth().padding(top = 24.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                OutlinedButton(onClick = vm::loadDisabled) { Text("Загрузить список") }
+            }
+        } else {
+            if (state.leftovers.isNotEmpty()) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "Вернулось после обновления прошивки: ${state.leftovers.size}",
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Такие пакеты TV включает заново при обновлении. Можно отключить их снова одной кнопкой.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Button(
+                            onClick = vm::reapplyLeftovers,
+                            enabled = !vm.busy,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Отключить снова")
+                        }
+                        state.leftovers.forEach { pkg ->
+                            Text(pkg, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+
+            Text(
+                "Отключено сейчас: ${state.disabled.size}",
+                style = MaterialTheme.typography.titleSmall
+            )
+
+            if (state.disabled.isEmpty()) {
+                Text(
+                    "Пока ничего не отключено. Список появится после первой очистки.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            } else {
+                LazyColumn(
+                    Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(state.disabled, key = { it }) { pkg ->
+                        Card {
+                            Row(
+                                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    pkg,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                TextButton(
+                                    onClick = { pendingRestore = pkg },
+                                    enabled = !vm.busy
+                                ) { Text("Вернуть") }
+                            }
+                        }
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = vm::loadDisabled,
+                enabled = !vm.busy,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Обновить")
+            }
+        }
+
+        MessageCards(vm)
+    }
+
+    pendingRestore?.let { pkg ->
+        AlertDialog(
+            onDismissRequest = { pendingRestore = null },
+            title = { Text("Включить обратно?") },
+            text = { Text("$pkg снова появится на TV. Ничего не удаляется, отключить его можно будет в любой момент.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    pendingRestore = null
+                    vm.restoreOne(pkg)
+                }) { Text("Включить") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRestore = null }) { Text("Отмена") }
+            }
+        )
+    }
+}
+
+@Composable
+private fun TvSettingsScreen(vm: AppViewModel) {
+    val settings = vm.tvSettings
+    var pending by remember { mutableStateOf<String?>(null) }
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Настройки TV", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            "Две настройки, которые забирают рекламу и ускоряют меню. Обе меняются через ADB и обратимы.",
+            style = MaterialTheme.typography.bodySmall
+        )
+
+        if (settings == null) {
+            if (vm.busy) {
+                CircularProgressIndicator()
+            } else {
+                OutlinedButton(onClick = vm::loadTvSettings) { Text("Загрузить настройки") }
+            }
+        } else {
+            Card {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Private DNS", fontWeight = FontWeight.Bold)
+                    Text(
+                        if (settings.dnsBlocking) {
+                            "Включён: ${settings.dnsSpecifier}. Реклама в приложениях режется на уровне DNS."
+                        } else {
+                            "Выключен. TV использует DNS от провайдера."
+                        },
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        "Режим: ${settings.dnsMode}, сервер: ${settings.dnsSpecifier.ifBlank { "—" }}",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Button(
+                        onClick = { pending = if (settings.dnsBlocking) "dns-off" else "dns-on" },
+                        enabled = !vm.busy,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (settings.dnsBlocking) "Выключить блокировку" else "Включить блокировку рекламы")
+                    }
+                }
+            }
+
+            Card {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Анимации", fontWeight = FontWeight.Bold)
+                    Text(
+                        when {
+                            settings.animationsOff -> "Выключены: меню переключается без задержек."
+                            settings.animationsDefault -> "Стандартная скорость (1.0)."
+                            else -> "Нестандартная скорость: ${settings.windowScale} / ${settings.transitionScale} / ${settings.animatorScale}."
+                        },
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        "Окно ${settings.windowScale} · переходы ${settings.transitionScale} · аниматор ${settings.animatorScale}",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Button(
+                        onClick = { pending = if (settings.animationsOff) "anim-on" else "anim-off" },
+                        enabled = !vm.busy,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (settings.animationsOff) "Вернуть анимации" else "Выключить анимации")
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = vm::loadTvSettings,
+                enabled = !vm.busy,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Обновить")
+            }
+
+            Text(
+                "После смены Private DNS перезагрузите TV: некоторые прошивки держат старый DNS до перезапуска. " +
+                    "Если что-то перестало открываться — выключите блокировку, это мгновенно возвращает всё как было.",
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+
+        MessageCards(vm)
+    }
+
+    pending?.let { action ->
+        AlertDialog(
+            onDismissRequest = { pending = null },
+            title = {
+                Text(
+                    when (action) {
+                        "dns-on" -> "Включить Private DNS?"
+                        "dns-off" -> "Выключить Private DNS?"
+                        "anim-off" -> "Выключить анимации?"
+                        else -> "Вернуть анимации?"
+                    }
+                )
+            },
+            text = {
+                Text(
+                    when (action) {
+                        "dns-on" -> "Все DNS-запросы TV пойдут через ${TvSettings.DNS_HOST}. " +
+                            "Реклама в приложениях и на экране ожидания перестанет загружаться. " +
+                            "Настройка обратима."
+                        "dns-off" -> "TV вернётся к DNS провайдера. Настройка обратима."
+                        "anim-off" -> "Изменятся три системных множителя: окно, переходы и аниматор станут 0.0. " +
+                            "Меню начнёт открываться мгновенно."
+                        else -> "Множители вернутся к стандартным 1.0."
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pending = null
+                    when (action) {
+                        "dns-on" -> vm.setDnsBlocking(true)
+                        "dns-off" -> vm.setDnsBlocking(false)
+                        "anim-off" -> vm.setAnimationsOff(true)
+                        else -> vm.setAnimationsOff(false)
+                    }
+                }) {
+                    Text(
+                        if (action.endsWith("off")) "Выключить" else "Включить"
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pending = null }) { Text("Отмена") }
+            }
+        )
     }
 }
 
