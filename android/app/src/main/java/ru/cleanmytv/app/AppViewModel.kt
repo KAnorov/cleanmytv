@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
-enum class Screen { Connect, Clean, Launcher, Disabled, TvSettings }
+enum class Screen { Connect, Clean, Appearance, Disabled, More, Launcher, TvSettings, Report }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -49,6 +49,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var tvSettings by mutableStateOf<TvSettingsState?>(null)
         private set
+    var launcherView by mutableStateOf<LauncherView?>(null)
+        private set
+    var reportText by mutableStateOf<String?>(null)
+        private set
+    private var theme: LauncherTheme? = null
 
     var update by mutableStateOf<UpdateInfo?>(null)
         private set
@@ -84,6 +89,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         launcher = null
         disabledState = null
         tvSettings = null
+        launcherView = null
+        reportText = null
+        theme = null
         selected = emptySet()
         viewModelScope.launch {
             try {
@@ -108,14 +116,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun open(target: Screen) {
-        if (probe == null) return
+        if (probe == null && target != Screen.Connect && target != Screen.More) return
         screen = target
         when (target) {
             Screen.Clean -> if (plan == null) loadPlan()
             Screen.Launcher -> if (launcher == null) refreshLauncher()
             Screen.Disabled -> loadDisabled()
+            Screen.Appearance -> if (launcherView == null) loadLauncherView()
             Screen.TvSettings -> if (tvSettings == null) loadTvSettings()
-            Screen.Connect -> Unit
+            Screen.Report -> loadReport()
+            Screen.More, Screen.Connect -> Unit
         }
     }
 
@@ -126,6 +136,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun selectAllSuggested() {
         val p = plan ?: return
         selected = p.entries.filter { it.suggested && it.state == "enabled" }.map { it.pkg }.toSet()
+    }
+
+    fun select(pkgs: Collection<String>) {
+        selected = selected + pkgs.filter { pkg -> plan?.entries?.any { it.pkg == pkg && it.state == "enabled" } == true }
+    }
+
+    fun deselect(pkgs: Collection<String>) {
+        selected = selected - pkgs.toSet()
     }
 
     fun clearSelection() {
@@ -358,6 +376,118 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- вид главного экрана ----
+
+    private fun themeFor(client: TvClient): LauncherTheme =
+        theme ?: LauncherTheme(client, getApplication()).also { theme = it }
+
+    fun loadLauncherView() {
+        val client = tv ?: return
+        busy = true
+        error = null
+        viewModelScope.launch {
+            try {
+                launcherView = withContext(Dispatchers.IO) { themeFor(client).read() }
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun saveLauncherView(view: LauncherView) {
+        val client = tv ?: return
+        busy = true
+        error = null
+        message = null
+        viewModelScope.launch {
+            try {
+                val settings = themeFor(client)
+                message = render(withContext(Dispatchers.IO) { settings.save(view) })
+                launcherView = withContext(Dispatchers.IO) { settings.read() }
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun applyWallpaper(uri: Uri) {
+        val client = tv ?: return
+        busy = true
+        error = null
+        message = null
+        viewModelScope.launch {
+            try {
+                val settings = themeFor(client)
+                message = render(withContext(Dispatchers.IO) { settings.setWallpaper(uri) })
+                launcherView = withContext(Dispatchers.IO) { settings.read() }
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun removeWallpaper() {
+        val client = tv ?: return
+        busy = true
+        error = null
+        message = null
+        viewModelScope.launch {
+            try {
+                val settings = themeFor(client)
+                message = render(withContext(Dispatchers.IO) { settings.clearWallpaper() })
+                launcherView = withContext(Dispatchers.IO) { settings.read() }
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun resetTheme() {
+        val client = tv ?: return
+        busy = true
+        error = null
+        message = null
+        viewModelScope.launch {
+            try {
+                val settings = themeFor(client)
+                message = render(withContext(Dispatchers.IO) { settings.reset() })
+                launcherView = withContext(Dispatchers.IO) { settings.read() }
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    // ---- отчёт для добавления модели в список ----
+
+    fun loadReport() {
+        val p = probe ?: return
+        val disabled = plan?.record?.packages
+            ?.filterValues { it == "enabled" }
+            ?.keys
+            ?.sorted()
+            .orEmpty()
+        reportText = Report.build(p, plan, disabled, BuildConfig.VERSION_NAME)
+    }
+
+    fun prepareReportExport(): String? {
+        val text = reportText ?: return null
+        exportText = text
+        val model = (probe?.model ?: "tv").replace(Regex("[^A-Za-z0-9.-]"), "_")
+        exportName = "cleanmytv-report-$model.md"
+        return exportName
+    }
+
     // ---- лаунчер ----
 
     fun refreshLauncher() {
@@ -475,7 +605,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         ?: throw IllegalStateException("Не удалось открыть файл для записи")
                     stream.use { it.write(text.toByteArray(Charsets.UTF_8)) }
                 }
-                message = "Скрипт сохранён: $exportName"
+                message = "Файл сохранён: $exportName"
             } catch (e: Throwable) {
                 error = friendly(e)
             }
@@ -491,11 +621,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val client = tv
         tv = null
         debloat = null
+        theme = null
         probe = null
         plan = null
         launcher = null
         disabledState = null
         tvSettings = null
+        launcherView = null
+        reportText = null
         selected = emptySet()
         screen = Screen.Connect
         message = null

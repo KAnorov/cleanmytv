@@ -12,8 +12,8 @@ android {
         applicationId = "ru.cleanmytv.app"
         minSdk = 29
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.3.0"
     }
 
     buildTypes {
@@ -58,6 +58,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-core")
 
     implementation("dev.mobile:dadb:2.0.0")
 

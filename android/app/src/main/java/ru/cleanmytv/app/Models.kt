@@ -51,10 +51,19 @@ data class Plan(
     val title: String,
     val entries: List<DebloatEntry>,
     val homePackage: String?,
-    val record: RecoveryRecord?
+    val record: RecoveryRecord?,
+    val fallback: Boolean = false
 ) {
     val suggestedInstalled: List<DebloatEntry>
         get() = entries.filter { it.suggested && it.state == "enabled" }
+
+    /** Только рекомендованные к отключению, сгруппированные по разделам списка. */
+    val suggestedBySection: Map<String, List<DebloatEntry>>
+        get() = entries.filter { it.suggested }.groupBy { it.section.ifBlank { "Общее" } }
+
+    /** «Что не трогаем»: пакеты, которые в списке помечены как безопасные для TV. */
+    val kept: List<DebloatEntry>
+        get() = entries.filter { !it.suggested && it.state != "absent" }
 }
 
 data class LauncherStatus(

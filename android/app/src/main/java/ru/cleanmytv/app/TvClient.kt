@@ -1,6 +1,7 @@
 package ru.cleanmytv.app
 
 import android.content.Context
+import android.util.Base64
 import dadb.AdbKeyPair
 import dadb.Dadb
 import dadb.InstallResult
@@ -170,6 +171,61 @@ class TvClient(private val context: Context) : Closeable {
         shell("settings put global $key $value")
     }
 
+    /** Есть ли такой файл на TV. Путь ограничен папкой настроек лаунчера. */
+    fun fileExists(path: String): Boolean {
+        validateFilePath(path)
+        return shell("[ -f $path ] && echo yes || echo no").contains("yes")
+    }
+
+    /**
+     * Читает небольшой файл с TV. Содержимое идёт base64 через shell: ADB-синхронизация
+     * на части телевизоров зависает, настольная версия делает так же.
+     */
+    fun readBase64File(path: String): ByteArray? {
+        validateFilePath(path)
+        val out = shell("[ -f $path ] && base64 $path || echo __missing__")
+        if (out.contains("__missing__")) return null
+        val encoded = out.replace(Regex("\\s+"), "")
+        if (encoded.isEmpty()) return ByteArray(0)
+        return try {
+            Base64.decode(encoded, Base64.DEFAULT)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    /** Записывает файл на TV кусками base64 — по 48 КБ на команду. */
+    fun writeBase64File(path: String, bytes: ByteArray) {
+        validateFilePath(path)
+        val tmp = "$path.cytv"
+        val encoded = Base64.encodeToString(bytes, Base64.NO_WRAP)
+        shell("rm -f $tmp")
+        var index = 0
+        while (index < encoded.length) {
+            val end = minOf(index + CHUNK, encoded.length)
+            shell("echo '${encoded.substring(index, end)}' >> $tmp")
+            index = end
+        }
+        val out = shell("base64 -d $tmp > $path && rm -f $tmp && echo written")
+        if (!out.contains("written")) {
+            throw IllegalStateException("Не удалось записать $path на TV: ${out.take(120)}")
+        }
+    }
+
+    fun listDir(path: String): List<String> {
+        validateFilePath(path)
+        return shell("ls $path 2>/dev/null")
+            .lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .toList()
+    }
+
+    fun removeFile(path: String) {
+        validateFilePath(path)
+        shell("rm -f $path")
+    }
+
     override fun close() {
         try {
             dadb?.close()
@@ -186,11 +242,19 @@ class TvClient(private val context: Context) : Closeable {
         require(key.matches(SETTING_KEY_RE)) { "Некорректный ключ настройки: $key" }
     }
 
+    private fun validateFilePath(path: String) {
+        require(path.matches(FILE_PATH_RE)) { "Некорректный путь на TV: $path" }
+    }
+
     companion object {
         val PACKAGE_RE = Regex("^[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)+$")
         val COMPONENT_RE = Regex("^[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+$")
         val SETTING_KEY_RE = Regex("^[A-Za-z0-9_.]+$")
         val SETTING_VALUE_RE = Regex("^[A-Za-z0-9_.-]*$")
+
+        /** Только папка настроек лаунчера: так в shell не попадёт произвольный путь. */
+        val FILE_PATH_RE = Regex("^/sdcard/Android/data/$CLEAN_LAUNCHER/files(/[A-Za-z0-9_.-]+)*$")
+        private const val CHUNK = 48 * 1024
 
         val KNOWN_STOCK = listOf(
             "com.google.android.tvlauncher",

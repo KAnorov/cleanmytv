@@ -30,17 +30,17 @@ jobs:
       - name: Assemble debug APK
         run: gradle -p android assembleDebug --no-daemon --stacktrace
       - name: Name the APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk CleanMyTV-android-0.2.0.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk CleanMyTV-android-0.3.0.apk
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: CleanMyTV-android
-          path: CleanMyTV-android-0.2.0.apk
+          path: CleanMyTV-android-0.3.0.apk
           if-no-files-found: error
       - name: Release
         if: startsWith(github.ref, 'refs/tags/android-')
         uses: softprops/action-gh-release@v2
         with:
-          files: CleanMyTV-android-0.2.0.apk
+          files: CleanMyTV-android-0.3.0.apk
           name: CleanMyTV для Android
           body: |
             Android-приложение CleanMyTV.
@@ -53,6 +53,10 @@ jobs:
             - Настройки TV: Private DNS с блокировкой рекламы и скорость анимаций.
             - Установка лаунчера CleanYourTV 2.4 и назначение Home.
             - Закрепление лаунчера как Home: штатные отключаются, чтобы после перезагрузки не возвращался старый экран.
+            - Настройка вида главного экрана с телефона: сетка, док, приветствие, скрытые плитки, обои 1920x1080.
+            - Список «Что не трогаем» и запасной набор для моделей, которых нет ни в одном списке.
+            - Отчёт о телевизоре для добавления модели в список очистки.
+            - Новый интерфейс с нижней навигацией.
 
             Установите APK на телефон (Android 10+), разрешив установку из неизвестных источников.
             Телефон и TV должны быть в одной Wi-Fi сети; на TV включена «Отладка по USB».

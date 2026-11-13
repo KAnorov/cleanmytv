@@ -32,6 +32,7 @@ class Debloat(private val context: Context, private val tv: TvClient) {
 
         val scored = all.map { it to score(it, probe) }.sortedByDescending { it.second }
         val best = scored.firstOrNull { it.second > 0 }?.first
+        val brand = if (best == null) brandFallback(all, probe, common) else null
         val chosen: RawList
         val title: String
         val entries: List<DebloatEntry>
@@ -44,6 +45,19 @@ class Debloat(private val context: Context, private val tv: TvClient) {
                     pkg = e.pkg,
                     note = e.note.ifBlank { common[e.pkg]?.second ?: "" },
                     suggested = e.suggested,
+                    section = e.section,
+                    state = stateOf(e.pkg, sets),
+                    common = common[e.pkg]?.first ?: 0
+                )
+            }
+        } else if (brand != null) {
+            chosen = RawList("brand", brand.first, emptyList(), emptyList())
+            title = brand.first
+            entries = brand.second.map { e ->
+                DebloatEntry(
+                    pkg = e.pkg,
+                    note = e.note,
+                    suggested = true,
                     section = e.section,
                     state = stateOf(e.pkg, sets),
                     common = common[e.pkg]?.first ?: 0
@@ -73,7 +87,8 @@ class Debloat(private val context: Context, private val tv: TvClient) {
             title = title,
             entries = entries,
             homePackage = homePkg,
-            record = record
+            record = record,
+            fallback = best == null && brand != null
         )
     }
 
@@ -207,6 +222,47 @@ class Debloat(private val context: Context, private val tv: TvClient) {
             "Отключено снова: ${reapplied.size} из ${packages.size}."
         }
         return ApplyResult(reapplied.isNotEmpty() || packages.isEmpty(), summary, warnings)
+    }
+
+    /**
+     * Запасной вариант для модели, которой нет ни в одном списке: берём только те пакеты,
+     * которые отключают во всех найденных списках этого производителя.
+     */
+    private fun brandFallback(
+        lists: List<RawList>,
+        probe: Probe,
+        common: Map<String, Pair<Int, String>>
+    ): Pair<String, List<RawEntry>>? {
+        val brand = probe.manufacturer.lowercase().trim()
+        if (brand.isBlank() || brand == "unknown") return null
+        val brandLists = lists.filter { list ->
+            val hay = (list.id + " " + list.title + " " + list.header.joinToString(" ")).lowercase()
+            hay.contains(brand)
+        }
+        if (brandLists.size < 2) return null
+
+        val counts = mutableMapOf<String, Int>()
+        for (list in brandLists) {
+            for (entry in list.entries) {
+                if (!entry.suggested) continue
+                counts[entry.pkg] = (counts[entry.pkg] ?: 0) + 1
+            }
+        }
+        val sure = counts.filterValues { it == brandLists.size }.keys
+        if (sure.isEmpty()) return null
+
+        val name = probe.manufacturer.trim()
+        val section = "Совпадает во всех списках $name"
+        val entries = sure.sorted().map { pkg ->
+            val note = brandLists.asSequence()
+                .flatMap { it.entries.asSequence() }
+                .firstOrNull { it.pkg == pkg && it.note.isNotBlank() }?.note
+                ?: common[pkg]?.second.orEmpty()
+            RawEntry(pkg = pkg, note = note, suggested = true, section = section)
+        }
+        val title = "Универсальный набор для $name: только то, что отключают во всех " +
+            "${brandLists.size} списках бренда"
+        return title to entries
     }
 
     private fun stateOf(pkg: String, sets: PackageSets): String = when {
