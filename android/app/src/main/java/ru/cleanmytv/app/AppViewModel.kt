@@ -600,7 +600,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 update = withContext(Dispatchers.IO) { Updates.check(BuildConfig.VERSION_NAME) }
             } catch (e: Throwable) {
-                error = friendly(e)
+                error = updateError(e)
             } finally {
                 checkingUpdate = false
             }
@@ -638,7 +638,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 UpdateInstaller.install(app, apk)
             } catch (e: Throwable) {
                 updateProgress = null
-                error = friendly(e)
+                error = updateError(e)
             } finally {
                 installingUpdate = false
             }
@@ -718,6 +718,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun render(result: ApplyResult): String {
         if (result.warnings.isEmpty()) return result.summary
         return result.summary + "\n\n" + result.warnings.joinToString("\n")
+    }
+
+    private fun updateError(e: Throwable): String {
+        val text = e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
+        val hint = when {
+            text.contains("403") ->
+                "GitHub временно ограничил частоту проверок с этого адреса. Попробуйте позже."
+            text.contains("404") -> "APK не найден в релизе — откройте страницу релиза."
+            else -> "Проверьте интернет на телефоне и попробуйте ещё раз."
+        }
+        return "$text\n\n$hint"
     }
 
     private fun friendly(e: Throwable): String {
