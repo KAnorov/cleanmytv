@@ -59,6 +59,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var checkingUpdate by mutableStateOf(false)
         private set
+    var installingUpdate by mutableStateOf(false)
+        private set
+    var updateProgress by mutableStateOf<Int?>(null)
+        private set
 
     var exportText by mutableStateOf<String?>(null)
         private set
@@ -599,6 +603,44 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 error = friendly(e)
             } finally {
                 checkingUpdate = false
+            }
+        }
+    }
+
+    /** Скачивает APK последнего релиза и открывает системный установщик. */
+    fun installUpdate() {
+        val info = update ?: return
+        val url = info.apkUrl
+        if (url.isNullOrBlank()) {
+            error = "В последнем релизе нет APK — откройте страницу релиза."
+            return
+        }
+        if (installingUpdate) return
+        val app = getApplication<Application>()
+        if (!UpdateInstaller.canInstall(app)) {
+            message = "Разрешите CleanMyTV установку приложений на открывшемся экране, " +
+                "затем нажмите «Обновить» снова."
+            UpdateInstaller.openSettings(app)
+            return
+        }
+        installingUpdate = true
+        updateProgress = 0
+        error = null
+        message = null
+        viewModelScope.launch {
+            try {
+                val apk = withContext(Dispatchers.IO) {
+                    UpdateInstaller.download(app, url, info.apkSize) { percent ->
+                        updateProgress = percent
+                    }
+                }
+                updateProgress = null
+                UpdateInstaller.install(app, apk)
+            } catch (e: Throwable) {
+                updateProgress = null
+                error = friendly(e)
+            } finally {
+                installingUpdate = false
             }
         }
     }

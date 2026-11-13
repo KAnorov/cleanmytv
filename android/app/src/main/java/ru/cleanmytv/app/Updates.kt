@@ -10,7 +10,9 @@ data class UpdateInfo(
     val url: String,
     val notes: String,
     val version: String,
-    val newer: Boolean
+    val newer: Boolean,
+    val apkUrl: String?,
+    val apkSize: Long
 )
 
 /** Проверка обновлений APK по релизам репозитория на GitHub. */
@@ -37,13 +39,28 @@ object Updates {
                 val tag = release.optString("tag_name")
                 if (!tag.startsWith("android-")) continue
                 val version = tag.removePrefix("android-v").removePrefix("android-")
+                var apkUrl: String? = null
+                var apkSize = 0L
+                val assets = release.optJSONArray("assets")
+                if (assets != null) {
+                    for (j in 0 until assets.length()) {
+                        val asset = assets.getJSONObject(j)
+                        if (!asset.optString("name").endsWith(".apk", ignoreCase = true)) continue
+                        apkUrl = asset.optString("browser_download_url")
+                            .takeIf { it.startsWith("https://") }
+                        apkSize = asset.optLong("size")
+                        break
+                    }
+                }
                 return UpdateInfo(
                     tag = tag,
                     name = release.optString("name").ifBlank { tag },
                     url = release.optString("html_url"),
                     notes = release.optString("body").trim().take(700),
                     version = version,
-                    newer = isNewer(version, current)
+                    newer = isNewer(version, current),
+                    apkUrl = apkUrl,
+                    apkSize = apkSize
                 )
             }
             throw IllegalStateException("В репозитории пока нет релизов с тегом android-*")

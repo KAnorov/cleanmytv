@@ -12,15 +12,30 @@ android {
         applicationId = "ru.cleanmytv.app"
         minSdk = 29
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.3.0"
+        versionCode = 5
+        versionName = "0.3.1"
+    }
+
+    signingConfigs {
+        // Ключ лежит в репозитории намеренно: приложение обновляет себя APK из релиза,
+        // а Android ставит обновление только поверх сборки с той же подписью.
+        create("stable") {
+            storeFile = file("../keystore/cleanmytv.jks")
+            storePassword = "cleanmytv"
+            keyAlias = "cleanmytv"
+            keyPassword = "cleanmytv"
+        }
     }
 
     buildTypes {
         debug {
+            // Один и тот же ключ у локальной сборки и у CI: только так APK из релиза
+            // может обновиться поверх установленного приложения.
+            signingConfig = signingConfigs.getByName("stable")
             isMinifyEnabled = false
         }
         release {
+            signingConfig = signingConfigs.getByName("stable")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

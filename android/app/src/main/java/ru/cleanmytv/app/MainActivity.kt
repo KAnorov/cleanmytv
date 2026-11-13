@@ -196,7 +196,13 @@ private fun CleanMyTvApp(vm: AppViewModel) {
                         onClick = { vm.open(tab.screen) },
                         enabled = !tab.needsTv || vm.probe != null,
                         icon = { Icon(tab.icon, contentDescription = null) },
-                        label = { Text(tab.label, maxLines = 1) }
+                        label = {
+                            Text(
+                                tab.label,
+                                maxLines = 1,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     )
                 }
             }
@@ -1468,6 +1474,32 @@ private fun UpdatesPanel(vm: AppViewModel) {
                     maxLines = 6,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+            if (u.newer) {
+                if (u.apkUrl.isNullOrBlank()) {
+                    Caption("В релизе пока нет APK — скачайте его со страницы релиза.")
+                } else {
+                    Button(
+                        onClick = vm::installUpdate,
+                        enabled = !vm.installingUpdate,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (vm.installingUpdate) "Скачиваем…" else "Обновить до ${u.version}")
+                    }
+                    val progress = vm.updateProgress
+                    if (progress != null) {
+                        LinearProgressIndicator(
+                            progress = { progress / 100f },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Caption("Скачано $progress%")
+                    } else {
+                        Caption(
+                            "APK скачается с GitHub и откроется системный установщик. " +
+                                "При первом обновлении разрешите установку из этого приложения."
+                        )
+                    }
+                }
             }
             if (u.url.startsWith("https://")) {
                 TextButton(onClick = { openUrl(context, u.url) }) {

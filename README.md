@@ -188,7 +188,7 @@ Wi-Fi, очистка по встроенным спискам с точкой �
 настройка вида главного экрана (сетка, док, приветствие, скрытые плитки, обои), Private DNS и
 анимации, отчёт о телевизоре. Заставка и пульт пока остаются в настольной версии.
 
-Скачать APK: [CleanMyTV-android-0.3.0.apk](https://github.com/KAnorov/cleanmytv/releases/download/android-v0.3.0/CleanMyTV-android-0.3.0.apk).
+Скачать APK: [CleanMyTV-android-0.3.1.apk](https://github.com/KAnorov/cleanmytv/releases/download/android-v0.3.1/CleanMyTV-android-0.3.1.apk).
 Подробности и сборка — в [android/README.md](android/README.md).
 
 ## Лицензия
