@@ -472,12 +472,36 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun loadReport() {
         val p = probe ?: return
-        val disabled = plan?.record?.packages
-            ?.filterValues { it == "enabled" }
-            ?.keys
-            ?.sorted()
-            .orEmpty()
-        reportText = Report.build(p, plan, disabled, BuildConfig.VERSION_NAME)
+        val record = plan?.record
+        val d = debloat
+        busy = true
+        error = null
+        viewModelScope.launch {
+            try {
+                val state = if (d != null && record != null) {
+                    withContext(Dispatchers.IO) { d.disabledState(record) }
+                } else {
+                    null
+                }
+                if (state != null) disabledState = state
+                val changed = record?.packages
+                    ?.filterValues { it == "enabled" }
+                    ?.keys
+                    ?.sorted()
+                    .orEmpty()
+                reportText = Report.build(
+                    probe = p,
+                    plan = plan,
+                    disabled = state?.disabled ?: changed,
+                    leftovers = state?.leftovers.orEmpty(),
+                    version = BuildConfig.VERSION_NAME
+                )
+            } catch (e: Throwable) {
+                error = friendly(e)
+            } finally {
+                busy = false
+            }
+        }
     }
 
     fun prepareReportExport(): String? {

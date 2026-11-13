@@ -6,9 +6,13 @@ package ru.cleanmytv.app
  */
 object Report {
 
-    fun build(probe: Probe, plan: Plan?, disabled: List<String>, version: String): String {
-        val record = plan?.record
-        val cleaned = record?.packages?.filterValues { it == "enabled" }?.keys?.sorted().orEmpty()
+    fun build(
+        probe: Probe,
+        plan: Plan?,
+        disabled: List<String>,
+        leftovers: List<String>,
+        version: String
+    ): String {
         val lines = mutableListOf<String>()
         lines += "# CleanMyTV: отчёт о телевизоре"
         lines += ""
@@ -24,7 +28,9 @@ object Report {
         lines += "Пакетов в списке: ${plan?.entries?.size ?: 0}"
         lines += "Рекомендовано к отключению: ${plan?.entries?.count { it.suggested } ?: 0}"
         lines += "Отключено этим приложением: ${disabled.size}"
-        lines += "Включено обратно вручную: ${cleaned.size}"
+        if (leftovers.isNotEmpty()) {
+            lines += "Вернулось после обновления прошивки: ${leftovers.size}"
+        }
         lines += ""
         if (disabled.isEmpty()) {
             lines += "Отключённых пакетов нет."
@@ -33,9 +39,9 @@ object Report {
             disabled.forEach { lines += "- $it" }
         }
         lines += ""
-        if (cleaned.isNotEmpty()) {
-            lines += "## Возвращённые пакеты"
-            cleaned.forEach { lines += "- $it" }
+        if (leftovers.isNotEmpty()) {
+            lines += "## Вернулись после обновления прошивки"
+            leftovers.forEach { lines += "- $it" }
             lines += ""
         }
         lines += "## Что делать с отчётом"
