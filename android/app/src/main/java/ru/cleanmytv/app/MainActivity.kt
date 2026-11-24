@@ -451,7 +451,8 @@ private fun ConnectScreen(vm: AppViewModel) {
         Panel {
             PanelTitle(
                 "Поиск в сети",
-                "Приложение проверит адреса в вашей Wi-Fi сети и найдёт телевизоры с открытым портом 5555."
+                "Приложение проверит адреса в вашей Wi-Fi сети и найдёт телевизоры с открытым портом 5555. " +
+                    "Имя устройства подтягивается автоматически."
             )
             OutlinedButton(
                 onClick = vm::startScan,
@@ -463,7 +464,7 @@ private fun ConnectScreen(vm: AppViewModel) {
                 Caption("Проверено адресов: ${vm.scanChecked} из 253")
             }
             vm.found.forEach { device ->
-                FoundRow(device.host, vm.connecting) { vm.connectTo(device.host) }
+                FoundRow(device, vm.connecting) { vm.connectTo(device.host) }
             }
         }
 
@@ -515,7 +516,7 @@ private fun LabeledValue(label: String, value: String) {
 }
 
 @Composable
-private fun FoundRow(host: String, connecting: Boolean, onConnect: () -> Unit) {
+private fun FoundRow(device: Discovery.Found, connecting: Boolean, onConnect: () -> Unit) {
     Card(
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -525,12 +526,26 @@ private fun FoundRow(host: String, connecting: Boolean, onConnect: () -> Unit) {
             Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                host,
-                style = MaterialTheme.typography.bodyLarge,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.weight(1f)
-            )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    device.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (device.title == device.host) FontWeight.Normal else FontWeight.SemiBold,
+                    fontFamily = if (device.title == device.host) FontFamily.Monospace else FontFamily.Default,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (device.details.isNotEmpty()) {
+                    Text(
+                        device.details,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
             TextButton(onClick = onConnect, enabled = !connecting) { Text("Подключить") }
         }
     }
